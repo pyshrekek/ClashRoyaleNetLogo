@@ -1,20 +1,49 @@
+globals [elixir time-elapsed time-left]
+
 to setup
   ca
-
+  set time-elapsed 0
+  resize-world 0 18 0 32
+  set-patch-size 18
+  ask patches [set pcolor 65]
+  ask patches with [(even? pxcor and even? pycor) or (odd? pxcor and odd? pycor)] [set pcolor 67]
+  ask patches with [pycor <= 5] [set pcolor brown]
+  ask patches with [pycor = 0] [set pcolor magenta + 2]
+  set elixir 4
 end
 
 to go
+  every 1 [set time-elapsed time-elapsed + 1]
+  set time-left (word (floor ((180 - time-elapsed) / 60)) ":" (remainder (180 - time-elapsed) 60))
+    elixir-update
+end
 
-endx
+to elixir-update
+  ifelse (elixir <= 10)
+  [
+    ifelse (time-elapsed >= 120)
+    [every .5 [set elixir elixir + 1]]
+    [every 1 [set elixir elixir + 1]]
+  ]
+  [set elixir 10]
+end
+
+to-report even? [n]
+  report n mod 2 = 0
+end
+
+to-report odd? [n]
+  report not even? n
+end
 @#$#@#$#@
 GRAPHICS-WINDOW
 210
 10
-647
-448
+560
+613
 -1
 -1
-13.0
+18.0
 1
 10
 1
@@ -24,15 +53,82 @@ GRAPHICS-WINDOW
 1
 1
 1
--16
-16
--16
-16
+0
+18
+0
+32
 0
 0
 1
 ticks
 30.0
+
+BUTTON
+45
+62
+111
+95
+NIL
+setup
+NIL
+1
+T
+OBSERVER
+NIL
+R
+NIL
+NIL
+1
+
+MONITOR
+575
+562
+658
+607
+NIL
+elixir
+17
+1
+11
+
+BUTTON
+81
+130
+144
+163
+NIL
+go
+T
+1
+T
+OBSERVER
+NIL
+E
+NIL
+NIL
+1
+
+MONITOR
+573
+199
+667
+244
+NIL
+time-elapsed
+17
+1
+11
+
+MONITOR
+577
+13
+643
+58
+NIL
+time-left
+17
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
