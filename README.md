@@ -3,8 +3,9 @@ Intro to Computer Science Final 2022
 
 By Khin Aung and Haokun (Daniel) Xu
 
-TODO:
-Game Mechanics
+## TODO:
+
+### Game Mechanics
 - [ ] drop and place cards
 - [ ] card attacks
 - [ ] tower pathing
@@ -13,7 +14,7 @@ Game Mechanics
 - [ ] elixir
 - [ ] tower cooldown
 
-Game UI / Map
+### Game UI / Map
 - [ ] Elixir bar
 - [x] Elixir counter
 - [x] Time left
