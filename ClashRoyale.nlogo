@@ -31,14 +31,21 @@ to elixir-update
     [every 1 [set elixir elixir + 1]]
   ]
   [set elixir 10]
+
+  ;; draw elixir count on screen
+  ask patches with [pxcor <= (elixir * 2) and pxcor != 0 and pxcor != 20 and odd? pxcor and pycor = 0] [set pcolor magenta]
+  ask patches with [pxcor > (elixir * 2) and pxcor != 0 and pxcor != 20 and odd? pxcor and pycor = 0] [set pcolor brown]
 end
 
 ;; SETUP COMMANDS
 to board
+  ;; playing field
   ask patches [set pcolor 65]
   ask patches with [(even? pxcor and even? pycor) or (odd? pxcor and odd? pycor)] [set pcolor 67]
   ask patches with [pycor = 20] [set pcolor blue]
+  ;; deck
   ask patches with [pycor <= 3 or pycor >= 37] [set pcolor brown]
+    ask patches with [even? pxcor and pycor = 0] [set pcolor black]
   ;; paths
   ask patches with
   [
@@ -136,10 +143,10 @@ NIL
 1
 
 MONITOR
-619
-700
-702
-745
+119
+712
+202
+757
 NIL
 elixir
 17
