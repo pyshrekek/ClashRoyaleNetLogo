@@ -1,1 +1,1 @@
-dd
+We decided on what to do for the project, that being a mimic of the game Clash Royale, by Supercell, a game that has been popular among the Stuyvesant student community. Khin planned out the various game mechanics we would be adopting, while Daniel worked on recreating the map and a critical mechanic of the game, elixir, which serves as currency to place cards within this real time strategy game.

@@ -117,7 +117,7 @@ to test-move
 end
 
 to test-attack
-  if
+
 end
 
 ;; AUXILIARY FUNCTIONS
