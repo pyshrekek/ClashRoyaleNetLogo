@@ -2,8 +2,10 @@ globals [elixir time-elapsed time-left]
 
 breed [towers tower]
 breed [tests test]
+breed [cards card]
 
 tests-own [hp]
+cards-own [selected]
 towers-own [hp]
 
 to setup
@@ -118,6 +120,33 @@ end
 
 to test-attack
 
+end
+
+;; TESTING
+to card-setup
+  crt 1
+  [ setxy 4 3
+    set breed cards
+    set shape "square"
+    set size 5
+    set color gray
+  ]
+  crt 1
+  [ setxy 8 3
+    set breed cards
+    set shape "square"
+    set size 5
+    set color gray
+  ]
+end
+
+to card-drag
+  ask cards
+  [ if (mouse-down? and (distancexy mouse-xcor mouse-ycor < 6))
+    [ while [(count cards with [(mouse-down? and (distancexy mouse-xcor mouse-ycor < 2))] = 1)  ]
+      [setxy mouse-xcor mouse-ycor]
+    ]
+  ]
 end
 
 ;; AUXILIARY FUNCTIONS
@@ -236,6 +265,40 @@ T
 OBSERVER
 NIL
 T
+NIL
+NIL
+1
+
+BUTTON
+45
+249
+147
+283
+NIL
+card-setup
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+32
+318
+127
+352
+NIL
+card-drag
+T
+1
+T
+OBSERVER
+NIL
+NIL
 NIL
 NIL
 1
