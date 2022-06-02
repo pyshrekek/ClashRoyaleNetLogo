@@ -1,21 +1,26 @@
 globals [elixir time-elapsed time-left]
 
+breed [towers tower]
+towers-own [hp state]
+
 to setup
   ca
   set time-elapsed 0
-  resize-world 0 18 0 32
+  resize-world 0 20 0 40
   set-patch-size 18
-  ask patches [set pcolor 65]
-  ask patches with [(even? pxcor and even? pycor) or (odd? pxcor and odd? pycor)] [set pcolor 67]
-  ask patches with [pycor <= 5] [set pcolor brown]
-  ask patches with [pycor = 0] [set pcolor magenta + 2]
   set elixir 4
+  board
+  make-towers
 end
 
 to go
+  clock
+  elixir-update
+end
+
+to clock
   every 1 [set time-elapsed time-elapsed + 1]
   set time-left (word (floor ((180 - time-elapsed) / 60)) ":" (remainder (180 - time-elapsed) 60))
-    elixir-update
 end
 
 to elixir-update
@@ -26,6 +31,56 @@ to elixir-update
     [every 1 [set elixir elixir + 1]]
   ]
   [set elixir 10]
+end
+
+;; SETUP COMMANDS
+to board
+  ask patches [set pcolor 65]
+  ask patches with [(even? pxcor and even? pycor) or (odd? pxcor and odd? pycor)] [set pcolor 67]
+  ask patches with [pycor = 20] [set pcolor blue]
+  ask patches with [pycor <= 3 or pycor >= 37] [set pcolor brown]
+  ;; paths
+  ask patches with
+  [
+    ((pxcor = 4 or pxcor = 16) and (pycor >= 6 and pycor <= 34)) or
+    ((pxcor >= 4 and pxcor <= 16) and (pycor = 6 or pycor = 34))
+  ]
+  [set pcolor 27]
+end
+
+to make-towers
+  ;; small towers
+  ask (patch-set (patch 4 10) (patch 4 30))
+  [
+    sprout-towers 1
+    [
+      set shape "box"
+      set color gray
+      set size 3
+      face patch 4 20
+    ]
+  ]
+  ask (patch-set (patch 16 10) (patch 16 30))
+  [
+    sprout-towers 1
+    [
+      set shape "box"
+      set color gray
+      set size 3
+      face patch 16 20
+    ]
+  ]
+  ;; king tower
+  ask (patch-set (patch 10 6) (patch 10 34))
+  [
+    sprout-towers 1
+    [
+      set shape "box"
+      set color gray + 2
+      set size 4
+      face patch 10 20
+    ]
+  ]
 end
 
 to-report even? [n]
@@ -39,8 +94,8 @@ end
 GRAPHICS-WINDOW
 210
 10
-560
-613
+596
+757
 -1
 -1
 18.0
@@ -50,13 +105,13 @@ GRAPHICS-WINDOW
 1
 1
 0
-1
-1
+0
+0
 1
 0
-18
+20
 0
-32
+40
 0
 0
 1
@@ -81,10 +136,10 @@ NIL
 1
 
 MONITOR
-575
-562
-658
-607
+619
+700
+702
+745
 NIL
 elixir
 17
@@ -109,10 +164,10 @@ NIL
 1
 
 MONITOR
-573
-199
-667
-244
+680
+14
+774
+59
 NIL
 time-elapsed
 17
@@ -120,10 +175,10 @@ time-elapsed
 11
 
 MONITOR
-577
-13
-643
-58
+605
+14
+671
+59
 NIL
 time-left
 17
