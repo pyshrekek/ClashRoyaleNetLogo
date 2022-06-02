@@ -1,7 +1,10 @@
 globals [elixir time-elapsed time-left]
 
 breed [towers tower]
-towers-own [hp state]
+breed [tests test]
+
+tests-own [hp]
+towers-own [hp]
 
 to setup
   ca
@@ -16,8 +19,10 @@ end
 to go
   clock
   elixir-update
+  test-move
 end
 
+;; UI/GAME PROGRESSION
 to clock
   every 1 [set time-elapsed time-elapsed + 1]
   set time-left (word (floor ((180 - time-elapsed) / 60)) ":" (remainder (180 - time-elapsed) 60))
@@ -64,6 +69,7 @@ to make-towers
       set shape "box"
       set color gray
       set size 3
+      set hp 5000
       face patch 4 20
     ]
   ]
@@ -74,6 +80,7 @@ to make-towers
       set shape "box"
       set color gray
       set size 3
+      set hp 5000
       face patch 16 20
     ]
   ]
@@ -85,11 +92,35 @@ to make-towers
       set shape "box"
       set color gray + 2
       set size 4
+      set hp 7500
       face patch 10 20
     ]
   ]
 end
 
+;; CARDS
+to test-spawn
+  crt 1
+  [
+    set breed tests
+    set xcor 4
+    set ycor 10
+    set heading 0
+  ]
+end
+
+to test-move
+  every .5
+  [
+    ask tests [fd 1]
+  ]
+end
+
+to test-attack
+  if
+end
+
+;; AUXILIARY FUNCTIONS
 to-report even? [n]
   report n mod 2 = 0
 end
@@ -191,6 +222,23 @@ time-left
 17
 1
 11
+
+BUTTON
+57
+493
+159
+527
+NIL
+test-spawn
+NIL
+1
+T
+OBSERVER
+NIL
+T
+NIL
+NIL
+1
 
 @#$#@#$#@
 ## WHAT IS IT?

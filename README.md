@@ -7,19 +7,22 @@ By Khin Aung and Haokun (Daniel) Xu
 
 ### Game Mechanics
 - [ ] drop and place cards
+    - [could use this model](http://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Code%20Examples/Mouse%20Drag%20Multiple%20Example.nlogo)
 - [ ] card attacks
 - [ ] tower pathing
+    - Use SlimeMold like pheromone pathing
 - [ ] structure hp
 - [ ] match progression (based on time)
-- [ ] elixir
-- [ ] tower cooldown
+    - [x] 2x elixir under 1 min
+    - [ ] overtime
+- [ ] elixir (subtract when place cards)
 
 ### Game UI / Map
-- [ ] Elixir bar
+- [x] Elixir bar
 - [x] Elixir counter
 - [x] Time left
 - [ ] Crown count
-- [ ] Tower / Enemy HP
+- [x] Tower / Enemy HP
 - [ ] Range display
 - [ ] Deck display w/ cooldown
     - Make decks a rectangle with a netlogo vector shape (importing actual card images is very janky and does not work as a turtle)
