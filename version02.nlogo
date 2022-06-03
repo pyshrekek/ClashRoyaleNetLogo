@@ -1,12 +1,12 @@
-globals [elixir time-elapsed time-left]
+globals [elixir time-elapsed time-left bottom-crowns top-crowns]
 
 breed [towers tower]
 breed [tests test]
 breed [cards card]
 
 tests-own [hp]
-cards-own [selected]
-towers-own [hp]
+cards-own [drag-state pos troop]
+towers-own [hp pos side]
 
 to setup
   ca
@@ -15,22 +15,29 @@ to setup
   set-patch-size 18
   set elixir 4
   board
-  make-towers
+  towers-make
+  test-spawn
+  card-setup
+  set time-left "3:00"
 end
 
 to go
   clock
   elixir-update
   test-move
+  test-attack
+  towers-update
+  crowns-update
+  card-drag
 end
 
 ;; UI/GAME PROGRESSION
-to clock
+to clock ;counts time elapsed and time left (assuming game time of 3 minutes)
   every 1 [set time-elapsed time-elapsed + 1]
   set time-left (word (floor ((180 - time-elapsed) / 60)) ":" (remainder (180 - time-elapsed) 60))
 end
 
-to elixir-update
+to elixir-update ;updates and counts elixir for player 1
   ifelse (elixir <= 10)
   [
     ifelse (time-elapsed >= 120)
@@ -44,8 +51,15 @@ to elixir-update
   ask patches with [pxcor > (elixir * 2) and pxcor != 0 and pxcor != 20 and odd? pxcor and pycor = 0] [set pcolor brown]
 end
 
+to crowns-update ;updates and counts crowns for both players
+  set top-crowns 3 - (count towers with [side = "bottom"])
+  set bottom-crowns 3 - (count towers with [side = "top"])
+end
+
+
+
 ;; SETUP COMMANDS
-to board
+to board ;sets up the game field and UI
   ;; playing field
   ask patches [set pcolor 65]
   ask patches with [(even? pxcor and even? pycor) or (odd? pxcor and odd? pycor)] [set pcolor 67]
@@ -62,49 +76,36 @@ to board
   [set pcolor 27]
 end
 
-to make-towers
-  ;; small towers
-  ask (patch-set (patch 4 10) (patch 4 30))
+to towers-make ;spawns in towers
+  ;; at (4,10) (16,10) (10,6) (4,30) (16,30) (10,34)
+  create-towers 1 [set pos "bottom-left" set side "bottom"]
+  create-towers 1 [set pos "bottom-right" set side "bottom"]
+  create-towers 1 [set pos "bottom-king" set side "bottom"]
+  create-towers 1 [set pos "top-left" set side "top"]
+  create-towers 1 [set pos "top-right" set side "top"]
+  create-towers 1 [set pos "top-king" set side "top"]
+  ask towers
   [
-    sprout-towers 1
-    [
-      set shape "box"
-      set color gray
-      set size 3
-      set hp 5000
-      face patch 4 20
-    ]
-  ]
-  ask (patch-set (patch 16 10) (patch 16 30))
-  [
-    sprout-towers 1
-    [
-      set shape "box"
-      set color gray
-      set size 3
-      set hp 5000
-      face patch 16 20
-    ]
-  ]
-  ;; king tower
-  ask (patch-set (patch 10 6) (patch 10 34))
-  [
-    sprout-towers 1
-    [
-      set shape "box"
-      set color gray + 2
-      set size 4
-      set hp 7500
-      face patch 10 20
-    ]
+    set shape "box"
+    set color gray
+    set size 3
+    (ifelse
+      (pos = "bottom-left") [set xcor 4 set ycor 10 face patch 4 20 set hp 5000]
+      (pos = "bottom-right") [set xcor 16 set ycor 10 face patch 16 20 set hp 5000]
+      (pos = "bottom-king") [set xcor 10 set ycor 6 face patch 10 20 set hp 7500]
+      (pos = "top-left") [set xcor 4 set ycor 30 face patch 4 20 set hp 5000]
+      (pos = "top-right") [set xcor 16 set ycor 30 face patch 16 20 set hp 5000]
+      (pos = "top-king") [set xcor 10 set ycor 34 face patch 10 20 set hp 7500]
+    )
   ]
 end
 
+
+
 ;; CARDS
 to test-spawn
-  crt 1
+  create-tests 1
   [
-    set breed tests
     set xcor 4
     set ycor 10
     set heading 0
@@ -112,42 +113,88 @@ to test-spawn
 end
 
 to test-move
-  every .5
+  every .1
   [
     ask tests [fd 1]
+  ]
+  ask tests
+  [if [pycor] of patch-ahead 1 = 39 or [pycor] of patch-ahead 1 = 1
+    [rt 180]
   ]
 end
 
 to test-attack
-
-end
-
-;; TESTING
-to card-setup
-  crt 1
-  [ setxy 4 3
-    set breed cards
-    set shape "square"
-    set size 5
-    set color gray
-  ]
-  crt 1
-  [ setxy 8 3
-    set breed cards
-    set shape "square"
-    set size 5
-    set color gray
+  ask tests
+  [
+    ask towers-here with [side = "top"] [set hp 0]
   ]
 end
 
-to card-drag
+
+
+to card-setup ;creates cards
+  create-cards 1
+  [
+    setxy 2.5 3
+    set pos 1
+  ]
+  create-cards 1
+  [
+    setxy 7.5 3
+    set pos 2
+  ]
+  create-cards 1
+  [
+    setxy 12.5 3
+    set pos 3
+  ]
+  create-cards 1
+  [
+    setxy 17.5 3
+    set pos 4
+  ]
   ask cards
-  [ if (mouse-down? and (distancexy mouse-xcor mouse-ycor < 6))
-    [ while [(count cards with [(mouse-down? and (distancexy mouse-xcor mouse-ycor < 2))] = 1)  ]
-      [setxy mouse-xcor mouse-ycor]
-    ]
+  [
+    set shape "square"
+    set size 4
+    set color gray
+    set drag-state "waiting"
   ]
 end
+
+to card-drag ;allows for player interaction with cards
+  ;; POSSIBLE STATES: WAITING, DRAGGING
+  ask cards
+  [
+    (
+      ifelse
+      (mouse-down? and (distancexy mouse-xcor mouse-ycor <= 2) and drag-state = "waiting" and (count cards with [drag-state != "waiting"]) = 0)
+      [set drag-state "dragging"]
+      (not mouse-down? and drag-state = "dragging")
+      [
+        set drag-state "waiting"
+        (
+          ifelse
+          (pos = 1) [setxy 2.5 3]
+          (pos = 2) [setxy 7.5 3]
+          (pos = 3) [setxy 12.5 3]
+          (pos = 4) [setxy 17.5 3]
+        )
+      ]
+      (mouse-down? and drag-state = "dragging")
+      [setxy mouse-xcor mouse-ycor]
+    )
+  ]
+end
+
+to towers-update ;tower attacking and death
+  ask towers
+  [
+    if (hp <= 0) [die]
+  ]
+end
+
+
 
 ;; AUXILIARY FUNCTIONS
 to-report even? [n]
@@ -186,10 +233,10 @@ ticks
 30.0
 
 BUTTON
-45
-62
-111
-95
+8
+30
+92
+108
 NIL
 setup
 NIL
@@ -214,10 +261,10 @@ elixir
 11
 
 BUTTON
-81
-130
-144
-163
+93
+30
+174
+109
 NIL
 go
 T
@@ -231,10 +278,10 @@ NIL
 1
 
 MONITOR
-680
-14
-774
-59
+689
+10
+783
+55
 NIL
 time-elapsed
 17
@@ -242,66 +289,147 @@ time-elapsed
 11
 
 MONITOR
-605
-14
-671
-59
+603
+11
+669
+56
 NIL
 time-left
 17
 1
 11
 
-BUTTON
-57
-493
-159
-527
-NIL
-test-spawn
-NIL
+MONITOR
+610
+538
+681
+583
+bot-left hp
+first [hp] of towers with [pos = \"bottom-left\"]
+0
 1
-T
-OBSERVER
-NIL
-T
-NIL
-NIL
-1
+11
 
-BUTTON
-45
-249
-147
-283
-NIL
-card-setup
-NIL
+MONITOR
+701
+537
+780
+582
+bot-right hp
+first [hp] of towers with [pos = \"bottom-right\"]
+17
 1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
+11
 
-BUTTON
-32
-318
-127
-352
-NIL
-card-drag
-T
+MONITOR
+657
+590
+732
+635
+bot-king hp
+first [hp] of towers with [pos = \"bottom-king\"]
+17
 1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
+11
+
+MONITOR
+603
+174
+675
+219
+top-left hp
+first [hp] of towers with [pos = \"top-left\"]
+17
 1
+11
+
+MONITOR
+690
+174
+769
+219
+top-right hp
+first [hp] of towers with [pos = \"top-right\"]
+17
+1
+11
+
+MONITOR
+644
+115
+719
+160
+top-king hp
+first [hp] of towers with [pos = \"top-king\"]
+17
+1
+11
+
+MONITOR
+604
+64
+679
+109
+NIL
+top-crowns
+17
+1
+11
+
+MONITOR
+608
+647
+704
+692
+NIL
+bottom-crowns
+17
+1
+11
+
+MONITOR
+611
+282
+813
+327
+NIL
+[drag-state] of cards with [pos = 1]
+17
+1
+11
+
+MONITOR
+616
+341
+827
+386
+NIL
+[drag-state] of cards with [pos = 2]
+17
+1
+11
+
+MONITOR
+620
+394
+831
+439
+NIL
+[drag-state] of cards with [pos = 3]
+17
+1
+11
+
+MONITOR
+621
+457
+832
+502
+NIL
+[drag-state] of cards with [pos = 4]
+17
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
