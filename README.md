@@ -5,7 +5,7 @@ By Khin Aung and Haokun (Daniel) Xu
 
 ## TODO:
 
-**BOLDED** indicates high priority
+### BOLDED indicates high priority
 
 ### Game Mechanics
 - [ ] drop and place cards
