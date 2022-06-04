@@ -26,6 +26,7 @@ By Khin Aung and Haokun (Daniel) Xu
         - When an opposing troop is within (troop range) then it will lock on and start executing the
         attack procedure (melee towers will move towards the target before attacking), loop attack until opposing troop dies (or you die but that doesn't need to be coded). Once opposing troop dies then repeat targetting procedure. 
         - While there no opposing troop in range execute the structure targetting procedure.
+- [ ] **valid troop placement** (extended placement values when tower is broken)
 
 ### Game UI / Map
 - [x] Elixir bar
@@ -37,4 +38,4 @@ By Khin Aung and Haokun (Daniel) Xu
 - [x] Deck display w/ cooldown/cost
     - Make decks a rectangle with a netlogo vector shape (importing actual card images is very janky and does not work as a turtle)
     - Assign each card in the deck an appropriate vector shape that makes some degree of sense. (Person is giant) (person on wolf is HOG RIDEEEER)
-- [ ] **Add elixir costs to card sprite**
+- [x] Add elixir costs to card sprite

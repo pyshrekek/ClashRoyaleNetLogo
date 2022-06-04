@@ -5,7 +5,7 @@ breed [tests test]
 breed [cards card]
 
 tests-own [hp]
-cards-own [drag-state pos troop cost]
+cards-own [drag-state pos troop cost global? current-pos]
 towers-own [hp pos side]
 
 to setup
@@ -24,6 +24,7 @@ end
 to go
   clock
   elixir-update
+  get-card-pos
   test-move
   test-attack
   towers-update
@@ -145,14 +146,14 @@ to card-drag ;allows for player interaction with cards
   [
     (
       ifelse
-      (troop = "SkeletonArmy") [set cost 3]
-      (troop = "HogRider") [set cost 4]
-      (troop = "Archers") [set cost 3]
-      (troop = "Minions") [set cost 3]
-      (troop = "Arrows") [set cost 3]
-      (troop = "Giant") [set cost 5]
-      (troop = "GoblinBarrel") [set cost 3]
-      (troop = "MiniPekka") [set cost 4]
+      (troop = "SkeletonArmy") [set cost 3 set global? false]
+      (troop = "HogRider") [set cost 4 set global? false]
+      (troop = "Archers") [set cost 3 set global? false]
+      (troop = "Minions") [set cost 3 set global? false]
+      (troop = "Arrows") [set cost 3 set global? true]
+      (troop = "Giant") [set cost 5 set global? false]
+      (troop = "GoblinBarrel") [set cost 3 set global? true]
+      (troop = "MiniPekka") [set cost 4 set global? false]
     )
     (
       ifelse
@@ -163,10 +164,10 @@ to card-drag ;allows for player interaction with cards
       [
         (
           ifelse
-          (mouse-ycor <= 3 or mouse-ycor >= 20 or elixir < cost)
-          [release-invalid]
-          (mouse-ycor > 3 and mouse-ycor < 20 and elixir >= cost)
+          (current-pos = "on-map" and elixir >= cost)
           [release-valid]
+          (current-pos = "invalid" or current-pos = "deck" or elixir < cost)
+          [release-invalid]
         )
       ]
 
@@ -205,6 +206,8 @@ end
 to release-invalid
   reset-perspective
   set shape troop
+  set color gray
+  set size 4
   set drag-state "waiting"
   (
     ifelse
@@ -217,13 +220,35 @@ end
 
 ;;Move the card
 to drag
-  ifelse (ycor > 3) [set shape "bug" set heading 0] [set shape troop set heading 0]
+  (
+    ifelse
+    (current-pos = "deck") [set shape troop set color gray set size 4 set heading 0 reset-perspective ]
+    (current-pos = "invalid" or elixir < cost) [set shape "x" set color red set size 2 set heading 0 reset-perspective]
+    (current-pos = "on-map" and elixir >= cost) [set shape "bug" set color gray set size 4 set heading 0 ask patch-here [watch-me]]
+  )
   setxy mouse-xcor mouse-ycor
-  ask patch-here [watch-me]
 end
 
 to select
   set drag-state "dragging"
+end
+
+to get-card-pos
+  ask cards
+  [
+    (
+      ifelse
+      ; on deck
+      (ycor < 4 or ycor > 36) [set current-pos "deck"]
+      ; on water
+      (ycor = 20 and (xcor <= 3 or (xcor >= 5 and xcor <= 15) or xcor >= 17)) [set current-pos "invalid"]
+      ; global allows for worldwide placement
+      (global?) [set current-pos "on-map"]
+      ; otherwise you only get your side
+      (ycor >= 20) [set current-pos "invalid"]
+      [set current-pos "on-map"]
+    )
+  ]
 end
 
 ;================================================================================
@@ -244,11 +269,11 @@ to clock ;counts time elapsed and time left (assuming game time of 3 minutes)
 end
 
 to elixir-update ;updates and counts elixir for player 1
-  ifelse (elixir <= 10)
+  ifelse (elixir <= 10 and not god-mode)
   [
     ifelse (time-elapsed >= 120)
-    [every .5 [set elixir elixir + 1]]
-    [every 1 [set elixir elixir + 1]]
+    [every 1.4 [set elixir elixir + 1]]
+    [every 2.8 [set elixir elixir + 1]]
   ]
   [set elixir 10]
 
@@ -261,8 +286,6 @@ to crowns-update ;updates and counts crowns for both players
   set top-crowns 3 - (count towers with [side = "bottom"])
   set bottom-crowns 3 - (count towers with [side = "top"])
 end
-
-
 
 ;; AUXILIARY FUNCTIONS
 to-report even? [n]
@@ -520,6 +543,17 @@ first deck-rotation
 17
 1
 11
+
+SWITCH
+32
+442
+143
+475
+god-mode
+god-mode
+1
+1
+-1000
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -783,7 +817,7 @@ false
 0
 Rectangle -11221820 true false 0 0 300 300
 Polygon -16777216 false false 112 95 67 121 37 191 107 250 219 225 233 165 213 121
-Polygon -6459832 true false 44 177 -11 315 -8 338 126 322 213 224
+Polygon -6459832 true false 59 147 0 285 0 300 135 300 228 194
 Polygon -6459832 true false 64 133 49 178 73 236 147 259 218 224 232 168 213 122 174 107 104 105
 Polygon -13840069 true false 104 175 93 118 145 26 241 77 187 155 136 190
 Polygon -13840069 true false 205 109 241 111 266 143 248 93 199 92
@@ -826,10 +860,10 @@ Polygon -16777216 true false 173 31 118 33 117 30 145 10 206 7
 Polygon -6459832 true false 25 93 0 135 0 165 37 97
 Polygon -1184463 true false 61 77 0 60 0 90 0 105 25 127 78 118
 Rectangle -16777216 false false 0 0 300 300
-Circle -5825686 true false 7 269 60
-Circle -5825686 true false 225 270 60
-Circle -5825686 true false 150 270 60
-Circle -5825686 true false 75 270 60
+Circle -5825686 true false 39 279 42
+Circle -5825686 true false 219 279 42
+Circle -5825686 true false 159 279 42
+Circle -5825686 true false 99 279 42
 
 house
 false
@@ -889,6 +923,9 @@ Circle -1 true false 158 58 18
 Line -16777216 false 186 41 154 54
 Line -16777216 false 106 44 138 57
 Polygon -16777216 true false 118 114 144 98 165 117 142 110
+Circle -5825686 true false 30 270 60
+Circle -5825686 true false 210 270 60
+Circle -5825686 true false 120 270 60
 
 minipekka
 false
@@ -904,6 +941,10 @@ Polygon -6459832 true false 273 122 273 87 282 89 283 132
 Polygon -16777216 true false 275 89 252 33 266 7 289 22 279 97
 Rectangle -16777216 false false 0 0 300 300
 Line -16777216 false 45 180 240 225
+Circle -5825686 true false 39 279 42
+Circle -5825686 true false 219 279 42
+Circle -5825686 true false 159 279 42
+Circle -5825686 true false 99 279 42
 
 pentagon
 false
@@ -974,6 +1015,9 @@ Rectangle -16777216 true false 240 60 255 75
 Rectangle -7500403 true true 225 105 270 120
 Rectangle -16777216 false false 195 45 285 150
 Rectangle -16777216 false false 0 0 300 300
+Circle -5825686 true false 26 266 67
+Circle -5825686 true false 206 266 67
+Circle -5825686 true false 116 266 67
 
 square
 false
