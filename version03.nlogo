@@ -1,4 +1,4 @@
-globals [elixir time-elapsed time-left bottom-crowns top-crowns]
+globals [elixir time-elapsed time-left bottom-crowns top-crowns deck-rotation next-card]
 
 breed [towers tower]
 breed [tests test]
@@ -10,15 +10,16 @@ towers-own [hp pos side]
 
 to setup
   ca
+  set deck-rotation ["Goblin" "Knight" "Archer" "Minions" "Arrows" "Giant" "GoblinBarrel" "MiniPekka"]
   set time-elapsed 0
   resize-world 0 20 0 40
   set-patch-size 18
   set elixir 4
   board
   towers-make
-  test-spawn
   card-setup
   set time-left "3:00"
+  set next-card one-of deck-rotation
 end
 
 to go
@@ -104,22 +105,18 @@ end
 
 ;; CARDS
 to test-spawn
-  create-tests 1
+  hatch-tests 1
   [
-    set xcor 4
-    set ycor 10
+    setxy mouse-xcor mouse-ycor
+    set shape "bug"
     set heading 0
   ]
 end
 
 to test-move
-  every .1
+  every .3
   [
     ask tests [fd 1]
-  ]
-  ask tests
-  [if [pycor] of patch-ahead 1 = 39 or [pycor] of patch-ahead 1 = 1
-    [rt 180]
   ]
 end
 
@@ -133,26 +130,10 @@ end
 
 
 to card-setup ;creates cards
-  create-cards 1
-  [
-    setxy 2.5 3
-    set pos 1
-  ]
-  create-cards 1
-  [
-    setxy 7.5 3
-    set pos 2
-  ]
-  create-cards 1
-  [
-    setxy 12.5 3
-    set pos 3
-  ]
-  create-cards 1
-  [
-    setxy 17.5 3
-    set pos 4
-  ]
+  card-1
+  card-2
+  card-3
+  card-4
   ask cards
   [
     set shape "square"
@@ -162,29 +143,100 @@ to card-setup ;creates cards
   ]
 end
 
+to card-1
+  create-cards 1
+  [
+    setxy 2.5 3
+    set pos 1
+    set troop (one-of deck-rotation)
+    set deck-rotation remove [troop] of self deck-rotation
+  ]
+end
+
+to card-2
+  create-cards 1
+  [
+    setxy 7.5 3
+    set pos 2
+    set troop (one-of deck-rotation)
+    set deck-rotation remove [troop] of self deck-rotation
+  ]
+end
+
+to card-3
+  create-cards 1
+  [
+    setxy 12.5 3
+    set pos 3
+    set troop (one-of deck-rotation)
+    set deck-rotation remove [troop] of self deck-rotation
+  ]
+end
+
+to card-4
+  create-cards 1
+  [
+    setxy 17.5 3
+    set pos 4
+    set troop (one-of deck-rotation)
+    set deck-rotation remove [troop] of self deck-rotation
+  ]
+end
+
 to card-drag ;allows for player interaction with cards
-  ;; POSSIBLE STATES: WAITING, DRAGGING
+  ;; POSSIBLE STATES: WAITING, DRAGGING, RELEASING
   ask cards
   [
     (
       ifelse
+      (drag-state = "releasing")
+      [release-valid]
+
       (mouse-down? and (distancexy mouse-xcor mouse-ycor <= 2) and drag-state = "waiting" and (count cards with [drag-state != "waiting"]) = 0)
-      [set drag-state "dragging"]
+      [select]
+
       (not mouse-down? and drag-state = "dragging")
       [
-        set drag-state "waiting"
         (
           ifelse
-          (pos = 1) [setxy 2.5 3]
-          (pos = 2) [setxy 7.5 3]
-          (pos = 3) [setxy 12.5 3]
-          (pos = 4) [setxy 17.5 3]
+          (mouse-ycor <= 3 or mouse-ycor >= 20)
+          [release-invalid]
+          (mouse-ycor > 3 and mouse-ycor < 20)
+          [release-valid]
         )
       ]
+
       (mouse-down? and drag-state = "dragging")
-      [setxy mouse-xcor mouse-ycor]
+      [drag]
     )
   ]
+end
+
+to release-valid
+  test-spawn
+  reset-perspective
+  set drag-state "waiting"
+  set deck-rotation insert-item 0 deck-rotation [troop] of self
+end
+
+to release-invalid
+  set drag-state "releasing"
+  (
+    ifelse
+    (pos = 1) [setxy 2.5 3]
+    (pos = 2) [setxy 7.5 3]
+    (pos = 3) [setxy 12.5 3]
+    (pos = 4) [setxy 17.5 3]
+  )
+end
+
+to drag
+  setxy mouse-xcor mouse-ycor
+  ask patch-here [watch-me]
+end
+
+to select
+  set drag-state "dragging"
 end
 
 to towers-update ;tower attacking and death
@@ -263,7 +315,7 @@ elixir
 BUTTON
 93
 30
-174
+175
 109
 NIL
 go
@@ -390,10 +442,10 @@ bottom-crowns
 MONITOR
 611
 282
-813
+828
 327
 NIL
-[drag-state] of cards with [pos = 1]
+[troop] of cards with [pos = 1]
 17
 1
 11
@@ -404,7 +456,7 @@ MONITOR
 827
 386
 NIL
-[drag-state] of cards with [pos = 2]
+[troop] of cards with [pos = 2]
 17
 1
 11
@@ -415,7 +467,7 @@ MONITOR
 831
 439
 NIL
-[drag-state] of cards with [pos = 3]
+[troop] of cards with [pos = 3]
 17
 1
 11
@@ -426,7 +478,29 @@ MONITOR
 832
 502
 NIL
-[drag-state] of cards with [pos = 4]
+[troop] of cards with [pos = 4]
+17
+1
+11
+
+MONITOR
+172
+763
+714
+808
+NIL
+deck-rotation
+17
+1
+11
+
+MONITOR
+63
+654
+138
+699
+NIL
+next-card
 17
 1
 11
