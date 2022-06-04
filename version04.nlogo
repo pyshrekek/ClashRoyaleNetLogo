@@ -5,12 +5,12 @@ breed [tests test]
 breed [cards card]
 
 tests-own [hp]
-cards-own [drag-state pos troop]
+cards-own [drag-state pos troop cost]
 towers-own [hp pos side]
 
 to setup
   ca
-  set deck-rotation ["Goblin" "Knight" "Archer" "Minions" "Arrows" "Giant" "GoblinBarrel" "MiniPekka"]
+  set deck-rotation ["SkeletonArmy" "HogRider" "Archers" "Minions" "Arrows" "Giant" "GoblinBarrel" "MiniPekka"]
   set time-elapsed 0
   resize-world 0 20 0 40
   set-patch-size 18
@@ -30,33 +30,6 @@ to go
   crowns-update
   card-drag
 end
-
-;; UI/GAME PROGRESSION
-to clock ;counts time elapsed and time left (assuming game time of 3 minutes)
-  every 1 [set time-elapsed time-elapsed + 1]
-  set time-left (word (floor ((180 - time-elapsed) / 60)) ":" (remainder (180 - time-elapsed) 60))
-end
-
-to elixir-update ;updates and counts elixir for player 1
-  ifelse (elixir <= 10)
-  [
-    ifelse (time-elapsed >= 120)
-    [every .5 [set elixir elixir + 1]]
-    [every 1 [set elixir elixir + 1]]
-  ]
-  [set elixir 10]
-
-  ;; draw elixir count on screen
-  ask patches with [pxcor <= (elixir * 2) and pxcor != 0 and pxcor != 20 and odd? pxcor and pycor = 0] [set pcolor magenta]
-  ask patches with [pxcor > (elixir * 2) and pxcor != 0 and pxcor != 20 and odd? pxcor and pycor = 0] [set pcolor brown]
-end
-
-to crowns-update ;updates and counts crowns for both players
-  set top-crowns 3 - (count towers with [side = "bottom"])
-  set bottom-crowns 3 - (count towers with [side = "top"])
-end
-
-
 
 ;; SETUP COMMANDS
 to board ;sets up the game field and UI
@@ -78,17 +51,20 @@ end
 
 to towers-make ;spawns in towers
   ;; at (4,10) (16,10) (10,6) (4,30) (16,30) (10,34)
-  create-towers 1 [set pos "bottom-left" set side "bottom"]
-  create-towers 1 [set pos "bottom-right" set side "bottom"]
-  create-towers 1 [set pos "bottom-king" set side "bottom"]
-  create-towers 1 [set pos "top-left" set side "top"]
-  create-towers 1 [set pos "top-right" set side "top"]
-  create-towers 1 [set pos "top-king" set side "top"]
+  create-towers 1 [set pos "bottom-left" set side "bottom" set shape "tower"]
+  create-towers 1 [set pos "bottom-right" set side "bottom" set shape "tower"]
+  create-towers 1 [set pos "bottom-king" set side "bottom" set shape "king"]
+  create-towers 1 [set pos "top-left" set side "top" set shape "tower"]
+  create-towers 1 [set pos "top-right" set side "top" set shape "tower"]
+  create-towers 1 [set pos "top-king" set side "top" set shape "king"]
   ask towers
   [
-    set shape "box"
-    set color gray
-    set size 3
+    ifelse (side = "top")
+    [set color red]
+    [set color blue]
+    ifelse (pos = "top-king" or pos = "bottom-king")
+    [set size 4]
+    [set size 3]
     (ifelse
       (pos = "bottom-left") [set xcor 4 set ycor 10 face patch 4 20 set hp 5000]
       (pos = "bottom-right") [set xcor 16 set ycor 10 face patch 16 20 set hp 5000]
@@ -135,7 +111,7 @@ to card-setup ;creates cards
   card-spawn 4
   ask cards
   [
-    set shape "square"
+    set shape troop
     set size 4
     set color gray
     set drag-state "waiting"
@@ -148,6 +124,7 @@ to card-spawn [p]
   [
     set pos p
     set troop (one-of deck-rotation)
+    set shape troop
     set deck-rotation remove [troop] of self deck-rotation
     (
       ifelse
@@ -163,14 +140,22 @@ end
 ;STATE MACHINE KINDA THING IDK LOL
 
 to card-drag ;allows for player interaction with cards
-  ;; POSSIBLE STATES: WAITING, DRAGGING, RELEASING
+  ;; POSSIBLE STATES: WAITING, DRAGGING
   ask cards
   [
     (
       ifelse
-      (drag-state = "releasing")
-      [release-valid]
-
+      (troop = "SkeletonArmy") [set cost 3]
+      (troop = "HogRider") [set cost 4]
+      (troop = "Archers") [set cost 3]
+      (troop = "Minions") [set cost 3]
+      (troop = "Arrows") [set cost 3]
+      (troop = "Giant") [set cost 5]
+      (troop = "GoblinBarrel") [set cost 3]
+      (troop = "MiniPekka") [set cost 4]
+    )
+    (
+      ifelse
       (mouse-down? and (distancexy mouse-xcor mouse-ycor <= 2) and drag-state = "waiting" and (count cards with [drag-state != "waiting"]) = 0)
       [select]
 
@@ -178,9 +163,9 @@ to card-drag ;allows for player interaction with cards
       [
         (
           ifelse
-          (mouse-ycor <= 3 or mouse-ycor >= 20)
+          (mouse-ycor <= 3 or mouse-ycor >= 20 or elixir < cost)
           [release-invalid]
-          (mouse-ycor > 3 and mouse-ycor < 20)
+          (mouse-ycor > 3 and mouse-ycor < 20 and elixir >= cost)
           [release-valid]
         )
       ]
@@ -198,10 +183,12 @@ to release-valid
   set drag-state "waiting"
   ; insert current troop into last position of deck, then set troop of next card as top card in deck
   set deck-rotation insert-item ((position (last deck-rotation) deck-rotation) + 1) deck-rotation [troop] of self
+  set elixir elixir - cost
   hatch-cards 1
   [
     set pos [pos] of self
     set troop first deck-rotation
+    set shape troop
     set deck-rotation but-first deck-rotation
     (
       ifelse
@@ -217,6 +204,7 @@ end
 ;;Whenever the card is released and not within the placeable area of the player
 to release-invalid
   reset-perspective
+  set shape troop
   set drag-state "waiting"
   (
     ifelse
@@ -229,7 +217,7 @@ end
 
 ;;Move the card
 to drag
-  ifelse (ycor > 3) [set shape "bug" set heading 0] [set shape "square" set heading 0]
+  ifelse (ycor > 3) [set shape "bug" set heading 0] [set shape troop set heading 0]
   setxy mouse-xcor mouse-ycor
   ask patch-here [watch-me]
 end
@@ -245,6 +233,33 @@ to towers-update ;tower attacking and death
   [
     if (hp <= 0) [die]
   ]
+end
+
+
+
+;; UI/GAME PROGRESSION
+to clock ;counts time elapsed and time left (assuming game time of 3 minutes)
+  every 1 [set time-elapsed time-elapsed + 1]
+  set time-left (word (floor ((180 - time-elapsed) / 60)) ":" (remainder (180 - time-elapsed) 60))
+end
+
+to elixir-update ;updates and counts elixir for player 1
+  ifelse (elixir <= 10)
+  [
+    ifelse (time-elapsed >= 120)
+    [every .5 [set elixir elixir + 1]]
+    [every 1 [set elixir elixir + 1]]
+  ]
+  [set elixir 10]
+
+  ;; draw elixir count on screen
+  ask patches with [pxcor <= (elixir * 2) and pxcor != 0 and pxcor != 20 and odd? pxcor and pycor = 0] [set pcolor magenta]
+  ask patches with [pxcor > (elixir * 2) and pxcor != 0 and pxcor != 20 and odd? pxcor and pycor = 0] [set pcolor brown]
+end
+
+to crowns-update ;updates and counts crowns for both players
+  set top-crowns 3 - (count towers with [side = "bottom"])
+  set bottom-crowns 3 - (count towers with [side = "top"])
 end
 
 
@@ -284,17 +299,6 @@ GRAPHICS-WINDOW
 1
 ticks
 30.0
-
-MONITOR
-0
-0
-0
-0
-NIL
-NIL
-17
-1
-11
 
 BUTTON
 8
@@ -506,6 +510,17 @@ deck-rotation
 1
 11
 
+MONITOR
+107
+610
+185
+655
+NEXT CARD
+first deck-rotation
+17
+1
+11
+
 @#$#@#$#@
 ## WHAT IS IT?
 
@@ -553,10 +568,64 @@ true
 0
 Polygon -7500403 true true 150 0 135 15 120 60 120 105 15 165 15 195 120 180 135 240 105 270 120 285 150 270 180 285 210 270 165 240 180 180 285 195 285 165 180 105 180 60 165 15
 
+archers
+false
+0
+Rectangle -11221820 true false 0 0 300 300
+Rectangle -10899396 true false 0 210 300 300
+Polygon -13791810 true false 80 186 56 238 75 300 195 300 195 209 158 173
+Polygon -1184463 true false 55 99 55 217 133 239 192 174 157 72
+Polygon -5825686 true false 60 105 156 80 187 185 203 180 175 38 111 40 35 65 37 219 65 216
+Polygon -1 true false 68 127 92 119 112 132 88 140
+Polygon -1 true false 159 118 135 110 115 123 139 131
+Circle -11221820 true false 86 123 14
+Circle -11221820 true false 132 113 15
+Polygon -16777216 true false 119 147 110 175 132 175 118 165
+Polygon -2064490 true false 104 196 123 199 145 190 138 204 110 210
+Polygon -1184463 true false 217 31 269 138 251 260 253 147
+Line -1 false 221 42 252 251
+Line -6459832 false 154 166 268 145
+Polygon -2674135 true false 260 130 289 143 263 157
+Polygon -6459832 true false 75 279 21 251 86 158 169 167 93 178 59 250 79 270
+Polygon -6459832 true false 186 242 260 169 260 191 184 256
+Rectangle -16777216 false false 0 0 300 300
+Circle -5825686 true false 75 15 0
+Circle -5825686 true false 30 270 60
+Circle -5825686 true false 120 270 60
+Circle -5825686 true false 210 270 60
+
 arrow
 true
 0
 Polygon -7500403 true true 150 0 0 150 105 150 105 293 195 293 195 150 300 150
+
+arrows
+false
+0
+Rectangle -13791810 true false 0 0 300 300
+Polygon -6459832 true false 165 165 195 75 210 90 165 165
+Polygon -1 true false 180 150 165 135 150 180 150 195 165 195 180 150
+Polygon -6459832 true false 90 210 120 120 135 135 90 210
+Polygon -6459832 true false 60 165 90 75 105 90 60 165
+Polygon -1 true false 60 180 120 105
+Polygon -1 true false 60 180 90 75
+Polygon -1 true false 75 150 60 135 45 180 45 195 60 195 75 150
+Polygon -1 true false 105 195 90 180 75 225 75 240 90 240 105 195
+Polygon -6459832 true false 90 105 75 105
+Polygon -6459832 true false 75 75
+Polygon -6459832 true false 180 240 210 150 225 165 180 240
+Polygon -6459832 true false 225 225 255 135 270 150 225 225
+Polygon -1 true false 240 210 225 195 210 240 210 255 225 255 240 210
+Polygon -1 true false 195 225 180 210 165 255 165 270 180 270 195 225
+Polygon -2674135 true false 90 75 75 60 90 105 120 90 105 90
+Polygon -2674135 true false 120 120 105 105 120 150 150 135 135 135
+Polygon -2674135 true false 195 75 180 60 195 105 225 90 210 90
+Polygon -2674135 true false 210 150 195 135 210 180 240 165 225 165
+Polygon -2674135 true false 255 135 240 120 255 165 285 150 270 150
+Rectangle -16777216 false false 0 0 300 300
+Circle -5825686 true false 30 270 58
+Circle -5825686 true false 210 270 58
+Circle -5825686 true false 120 270 58
 
 box
 false
@@ -685,6 +754,83 @@ Circle -16777216 true false 113 68 74
 Polygon -10899396 true false 189 233 219 188 249 173 279 188 234 218
 Polygon -10899396 true false 180 255 150 210 105 210 75 240 135 240
 
+giant
+false
+0
+Rectangle -11221820 true false 0 0 300 300
+Polygon -6459832 true false 74 200 -2 237 -6 311 312 312 225 200
+Polygon -1184463 true false 73 31 41 170 111 251 165 260 242 205 257 65 160 21
+Circle -1 true false 96 68 42
+Circle -1 true false 168 80 42
+Circle -13345367 true false 110 78 21
+Circle -13345367 true false 180 91 21
+Polygon -955883 true false 222 85 225 58 171 57 168 73 210 75
+Polygon -955883 true false 88 74 85 47 139 46 142 62 100 64
+Polygon -955883 true false 70 50 41 70 56 94 71 62
+Polygon -955883 true false 245 151 165 260 206 244 255 198
+Polygon -955883 true false 50 116 114 253 65 224 31 154
+Polygon -16777216 true false 112 171 143 189 183 173 151 206
+Polygon -16777216 true false 150 124 138 149 156 149 147 145
+Rectangle -16777216 false false 0 0 300 300
+Circle -5825686 true false 9 279 42
+Circle -5825686 true false 249 279 42
+Circle -5825686 true false 189 279 42
+Circle -5825686 true false 129 279 42
+Circle -5825686 true false 69 279 42
+
+goblinbarrel
+false
+0
+Rectangle -11221820 true false 0 0 300 300
+Polygon -16777216 false false 112 95 67 121 37 191 107 250 219 225 233 165 213 121
+Polygon -6459832 true false 44 177 -11 315 -8 338 126 322 213 224
+Polygon -6459832 true false 64 133 49 178 73 236 147 259 218 224 232 168 213 122 174 107 104 105
+Polygon -13840069 true false 104 175 93 118 145 26 241 77 187 155 136 190
+Polygon -13840069 true false 205 109 241 111 266 143 248 93 199 92
+Polygon -13840069 true false 156 63 110 21 79 25 107 38 124 88
+Polygon -16777216 true false 125 115 128 145 149 155 175 135
+Polygon -2674135 true false 137 134 111 141 125 157
+Circle -1184463 true false 147 61 20
+Circle -1184463 true false 184 77 20
+Circle -10899396 true false 150 66 14
+Circle -10899396 true false 188 82 14
+Polygon -13840069 true false 105 163 63 213 121 248 153 169
+Polygon -13840069 true false 98 189 50 104 36 118 100 195
+Polygon -13840069 true false 61 134 74 66
+Polygon -13840069 true false 130 199 230 171 232 193
+Polygon -16777216 true false 35 190 64 241 107 266 183 258 163 279 102 280 54 257 32 210
+Rectangle -16777216 false false 0 0 300 300
+Polygon -1184463 true false 165 90 150 105 165 120
+Circle -5825686 true false 26 266 67
+Circle -5825686 true false 206 266 67
+Circle -5825686 true false 116 266 67
+
+hogrider
+false
+0
+Rectangle -11221820 true false 0 0 300 300
+Rectangle -10899396 true false 0 150 300 300
+Polygon -6459832 true false 0 180 81 162 101 111 82 83 105 70 121 29 178 14 233 42 230 108 212 179 300 240 300 300 0 300
+Polygon -16777216 true false 113 75 88 169 131 201 154 201 206 179 220 116 204 121 186 163 165 172 124 162 113 141 122 79
+Polygon -16777216 true false 149 190
+Polygon -16777216 true false 111 120 162 112 205 130 200 141 157 126 112 132
+Polygon -1 true false 126 137 128 150 175 156 181 145 148 145 126 140
+Circle -1 true false 139 60 23
+Circle -1 true false 184 57 23
+Polygon -16777216 true false 130 57 153 43 171 55 148 54
+Polygon -16777216 true false 174 54 197 40 217 56 192 51
+Circle -11221820 true false 145 65 12
+Circle -11221820 true false 191 62 14
+Polygon -16777216 true false 168 94 155 105 182 108 170 101
+Polygon -16777216 true false 173 31 118 33 117 30 145 10 206 7
+Polygon -6459832 true false 25 93 0 135 0 165 37 97
+Polygon -1184463 true false 61 77 0 60 0 90 0 105 25 127 78 118
+Rectangle -16777216 false false 0 0 300 300
+Circle -5825686 true false 7 269 60
+Circle -5825686 true false 225 270 60
+Circle -5825686 true false 150 270 60
+Circle -5825686 true false 75 270 60
+
 house
 false
 0
@@ -692,6 +838,21 @@ Rectangle -7500403 true true 45 120 255 285
 Rectangle -16777216 true false 120 210 180 285
 Polygon -7500403 true true 15 120 150 15 285 120
 Line -16777216 false 30 120 270 120
+
+king
+false
+1
+Polygon -7500403 true false 0 15 45 15 45 75 120 75 120 75 180 75 180 75 255 75 255 15 300 15 300 300 0 300
+Rectangle -2674135 true true 0 120 300 180
+Rectangle -1184463 true false 75 180 75 195
+Polygon -16777216 false false 0 15 45 15 45 75 120 75 120 75 180 75 180 75 255 75 255 15 300 15 300 300 0 300 0 15
+Polygon -1184463 true false 75 -30 105 45 195 45 225 -30 180 0 150 -45 120 0
+Circle -955883 true false 86 26 127
+Circle -1 true false 112 55 30
+Circle -1 true false 157 55 30
+Polygon -16777216 true false 123 116 148 128 177 111 146 104
+Circle -13791810 true false 118 62 18
+Circle -13791810 true false 164 63 18
 
 leaf
 false
@@ -708,6 +869,41 @@ line half
 true
 0
 Line -7500403 true 150 0 150 150
+
+minions
+false
+0
+Rectangle -7500403 true true 0 0 300 300
+Rectangle -16777216 false false 0 0 300 300
+Polygon -13345367 true false 105 198 91 275 115 262 132 199
+Polygon -13345367 true false 179 189 193 266 169 253 152 190
+Polygon -13791810 true false 248 191 257 128 198 71 173 75 224 136 232 197
+Polygon -13791810 true false 77 114 27 37
+Polygon -13791810 true false 51 187 42 124 101 67 126 71 75 132 67 193
+Polygon -13791810 true false 124 15 90 38 89 82 97 125 141 155 194 113 192 78 193 23
+Polygon -13791810 true false 113 130 91 197 135 221 196 192 164 133
+Circle -13345367 true false 33 171 47
+Circle -13345367 true false 209 174 47
+Circle -1 true false 116 58 18
+Circle -1 true false 158 58 18
+Line -16777216 false 186 41 154 54
+Line -16777216 false 106 44 138 57
+Polygon -16777216 true false 118 114 144 98 165 117 142 110
+
+minipekka
+false
+0
+Rectangle -13345367 true false 0 0 300 300
+Polygon -11221820 true false 202 82 248 78 252 40 265 95 210 111
+Polygon -11221820 true false 77 65 39 60 24 25 18 89 75 99
+Polygon -7500403 true true 160 49 85 48 53 101 52 179 30 300 285 300 232 219 260 168 232 143 216 56
+Polygon -13791810 true false 140 145 109 107 178 108
+Polygon -13791810 true false 128 179
+Polygon -7500403 true true 217 188 268 123 286 118 276 158 222 210
+Polygon -6459832 true false 273 122 273 87 282 89 283 132
+Polygon -16777216 true false 275 89 252 33 266 7 289 22 279 97
+Rectangle -16777216 false false 0 0 300 300
+Line -16777216 false 45 180 240 225
 
 pentagon
 false
@@ -751,6 +947,34 @@ Polygon -1 true true 195 285 210 285 210 240 240 210 195 210
 Polygon -7500403 true false 276 85 285 105 302 99 294 83
 Polygon -7500403 true false 219 85 210 105 193 99 201 83
 
+skeletonarmy
+false
+0
+Rectangle -8630108 true false 0 0 300 300
+Rectangle -1 true false 180 165 270 285
+Rectangle -16777216 false false 180 165 270 285
+Rectangle -1 true false 90 15 165 150
+Rectangle -16777216 false false 90 15 165 150
+Rectangle -1 true false 15 105 105 240
+Rectangle -16777216 false false 15 105 105 240
+Rectangle -16777216 true false 30 135 45 150
+Rectangle -16777216 true false 60 135 75 150
+Rectangle -7500403 true true 30 195 75 210
+Rectangle -16777216 true false 105 45 120 60
+Rectangle -16777216 true false 135 45 150 60
+Rectangle -7500403 true true 105 120 135 135
+Rectangle -7500403 true true 195 240 255 255
+Rectangle -16777216 true false 210 195 225 210
+Rectangle -16777216 true false 240 195 255 210
+Rectangle -16777216 false false 195 45 285 150
+Rectangle -1 true false 195 45 285 150
+Rectangle -16777216 true false 225 75 240 75
+Rectangle -16777216 true false 210 60 225 75
+Rectangle -16777216 true false 240 60 255 75
+Rectangle -7500403 true true 225 105 270 120
+Rectangle -16777216 false false 195 45 285 150
+Rectangle -16777216 false false 0 0 300 300
+
 square
 false
 0
@@ -775,6 +999,18 @@ Circle -16777216 true false 30 30 240
 Circle -7500403 true true 60 60 180
 Circle -16777216 true false 90 90 120
 Circle -7500403 true true 120 120 60
+
+tower
+false
+1
+Rectangle -7500403 true false 0 105 300 300
+Rectangle -7500403 true false 0 45 45 120
+Rectangle -7500403 true false 120 45 180 105
+Rectangle -7500403 true false 255 45 300 120
+Rectangle -2674135 true true 0 120 300 150
+Rectangle -1184463 true false 75 180 75 195
+Polygon -1184463 true false 89 189 99 231 199 233 208 174 177 200 151 169 127 194 88 174
+Polygon -16777216 false false 0 45 45 45 45 105 120 105 120 45 180 45 180 105 255 105 255 45 300 45 300 300 0 300 0 45
 
 tree
 false
