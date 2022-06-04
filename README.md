@@ -20,7 +20,7 @@ By Khin Aung and Haokun (Daniel) Xu
 - [ ] match progression (based on time)
     - [x] 2x elixir under 1 min
     - [ ] overtime
-- [ ] **elixir (subtract when place cards)**
+- [x] elixir (subtract when place cards)
 - [ ] **troop targetting**
     - Both enemy troops and your troops follow the same procedure: 
         - When an opposing troop is within (troop range) then it will lock on and start executing the
