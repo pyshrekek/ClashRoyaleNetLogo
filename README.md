@@ -11,6 +11,7 @@ By Khin Aung and Haokun (Daniel) Xu
 - [ ] drop and place cards
     - [x] drag with mouse
     - [ ] **spawn troop on drop (state machine type beat)**
+    - [x] deck rotation
     - [could use this model](http://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Code%20Examples/Mouse%20Drag%20Multiple%20Example.nlogo)
 - [ ] card attacks
 - [ ] **tower pathing**

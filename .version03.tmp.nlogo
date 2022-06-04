@@ -285,6 +285,17 @@ GRAPHICS-WINDOW
 ticks
 30.0
 
+MONITOR
+0
+0
+0
+0
+NIL
+NIL
+17
+1
+11
+
 BUTTON
 8
 30
@@ -491,17 +502,6 @@ MONITOR
 808
 NIL
 deck-rotation
-17
-1
-11
-
-MONITOR
-107
-610
-185
-655
-NEXT CARD
-first deck-rotation
 17
 1
 11
