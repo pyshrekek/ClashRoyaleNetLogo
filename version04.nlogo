@@ -3,10 +3,12 @@ globals [elixir time-elapsed time-left bottom-crowns top-crowns deck-rotation]
 breed [towers tower]
 breed [tests test]
 breed [cards card]
+breed [units unit]
 
 tests-own [hp]
 cards-own [drag-state pos troop cost global? current-pos]
 towers-own [hp pos side]
+units-own [hp unit-dmg building-dmg speed troop side fly? unit-range]
 
 to setup
   ca
@@ -30,17 +32,18 @@ to go
   towers-update
   crowns-update
   card-drag
+  units-move
 end
 
 ;; SETUP COMMANDS
 to board ;sets up the game field and UI
-  ;; playing field
+         ;; playing field
   ask patches [set pcolor 65]
   ask patches with [(even? pxcor and even? pycor) or (odd? pxcor and odd? pycor)] [set pcolor 67]
   ask patches with [pycor = 20] [set pcolor blue]
   ;; deck
   ask patches with [pycor <= 3 or pycor >= 37] [set pcolor brown]
-    ask patches with [even? pxcor and pycor = 0] [set pcolor black]
+  ask patches with [even? pxcor and pycor = 0] [set pcolor black]
   ;; paths
   ask patches with
   [
@@ -51,7 +54,7 @@ to board ;sets up the game field and UI
 end
 
 to towers-make ;spawns in towers
-  ;; at (4,10) (16,10) (10,6) (4,30) (16,30) (10,34)
+               ;; at (4,10) (16,10) (10,6) (4,30) (16,30) (10,34)
   create-towers 1 [set pos "bottom-left" set side "bottom" set shape "tower"]
   create-towers 1 [set pos "bottom-right" set side "bottom" set shape "tower"]
   create-towers 1 [set pos "bottom-king" set side "bottom" set shape "king"]
@@ -141,19 +144,19 @@ end
 ;STATE MACHINE KINDA THING IDK LOL
 
 to card-drag ;allows for player interaction with cards
-  ;; POSSIBLE STATES: WAITING, DRAGGING
+             ;; POSSIBLE STATES: WAITING, DRAGGING
   ask cards
   [
     (
       ifelse
-      (troop = "SkeletonArmy") [set cost 3 set global? false]
-      (troop = "HogRider") [set cost 4 set global? false]
       (troop = "Archers") [set cost 3 set global? false]
-      (troop = "Minions") [set cost 3 set global? false]
       (troop = "Arrows") [set cost 3 set global? true]
       (troop = "Giant") [set cost 5 set global? false]
       (troop = "GoblinBarrel") [set cost 3 set global? true]
+      (troop = "HogRider") [set cost 4 set global? false]
+      (troop = "Minions") [set cost 3 set global? false]
       (troop = "MiniPekka") [set cost 4 set global? false]
+      (troop = "SkeletonArmy") [set cost 3 set global? false]
     )
     (
       ifelse
@@ -179,7 +182,7 @@ end
 
 ;;Whenever the card is released and within the placeable area of the player, spawn troop, un-highlight patch, and create new card in the deck
 to release-valid
-  test-spawn
+  units-spawn
   reset-perspective
   set drag-state "waiting"
   ; insert current troop into last position of deck, then set troop of next card as top card in deck
@@ -252,6 +255,49 @@ to get-card-pos
 end
 
 ;================================================================================
+
+to units-spawn
+  ; variables: hp dmg speed troop side fly?
+  (
+    ifelse
+    (troop = "Giant")
+    [
+      hatch-units 1
+      [
+        set size 5
+        set hp 350
+        set unit-dmg 20
+        set building-dmg 30
+        set speed .6
+        set fly? false
+        set troop troop
+        set shape (word troop "-unit")
+      ]
+    ]
+
+    (troop = "MiniPekka")
+    [
+      hatch-units 1
+      [
+        set size 3
+        set hp 100
+        set unit-dmg 40
+        set building-dmg 40
+        set speed 1
+        set fly? false
+        set troop troop
+        set shape (word troop "-unit")
+      ]
+    ]
+  )
+end
+
+to units-move
+    ask units
+    [
+      fd .0007 * speed
+    ]
+end
 
 to towers-update ;tower attacking and death
   ask towers
@@ -551,7 +597,7 @@ SWITCH
 475
 god-mode
 god-mode
-1
+0
 1
 -1000
 
@@ -812,6 +858,22 @@ Circle -5825686 true false 189 279 42
 Circle -5825686 true false 129 279 42
 Circle -5825686 true false 69 279 42
 
+giant-unit
+true
+0
+Rectangle -1184463 true false 103 226 117 267
+Rectangle -1184463 true false 167 224 177 270
+Polygon -1184463 true false 211 172 243 170 240 119 263 119 266 195 202 190
+Polygon -1184463 true false 71 172 41 176 42 133 20 138 24 197 77 192
+Polygon -6459832 true false 56 166 114 134 187 133 232 158 217 241 74 240
+Circle -1184463 true false 109 77 75
+Polygon -955883 true false 119 113 121 139 152 146 176 126 182 138 162 162 113 151 101 117
+Polygon -13791810 true false 94 165 78 190 96 198 117 176
+Circle -1 true false 122 76 13
+Circle -1 true false 159 78 13
+Circle -16777216 true false 125 79 8
+Circle -16777216 true false 163 80 8
+
 goblinbarrel
 false
 0
@@ -945,6 +1007,21 @@ Circle -5825686 true false 39 279 42
 Circle -5825686 true false 219 279 42
 Circle -5825686 true false 159 279 42
 Circle -5825686 true false 99 279 42
+
+minipekka-unit
+true
+0
+Rectangle -16777216 true false 182 233 199 283
+Rectangle -16777216 true false 104 236 121 280
+Polygon -7500403 true true 156 73 86 104 85 140 219 138 220 116
+Polygon -7500403 true true 95 122 61 196 72 254 239 249 250 180 203 112
+Rectangle -16777216 true false 239 144 239 142
+Polygon -6459832 true false 239 127 237 152 251 154 252 132
+Polygon -7500403 true true 244 137 227 130 232 88 251 65 264 89 259 143
+Polygon -16777216 true false 217 172 240 144 248 150 221 178
+Polygon -11221820 true false 96 112 70 106 58 76 51 115 96 132
+Polygon -11221820 true false 208 121 236 106 226 66 252 100 208 133
+Line -16777216 false 87 145 220 139
 
 pentagon
 false

@@ -39,3 +39,18 @@ By Khin Aung and Haokun (Daniel) Xu
     - Make decks a rectangle with a netlogo vector shape (importing actual card images is very janky and does not work as a turtle)
     - Assign each card in the deck an appropriate vector shape that makes some degree of sense. (Person is giant) (person on wolf is HOG RIDEEEER)
 - [x] Add elixir costs to card sprite
+
+
+# Troop Stats
+- **VALUES ARE SUBJECT TO CHANGE**
+
+| Troop        | size | hp  | unit-dmg | building-dmg | speed | fly? | unit-range | attack-type                                                                                                          |
+|--------------|------|-----|----------|--------------|-------|------|------------|----------------------------------------------------------------------------------------------------------------------|
+| Archers      |      |     |          |              |       |      |            | ranged                                                                                                               |
+| Arrows       |      |     |          |              |       |      |            | spell                                                                                                                |
+| Giant        | 5    | 350 | 20       | 35           | 0.6   | no   |            | melee                                                                                                                |
+| GoblinBarrel |      |     |          |              |       |      |            | melee (not a spell bc we will just make it spawn a sprite of the thing getting thrown but in the end it spawns gobs) |
+| HogRider     |      |     |          |              |       |      |            |                                                                                                                      |
+| Minions      |      |     |          |              |       |      |            |                                                                                                                      |
+| MiniPekka    | 3    | 100 | 40       | 40           | 1     | no   |            | melee                                                                                                                |
+| SkeletonArmy |      |     |          |              |       |      |            |                                                                                                                      |
