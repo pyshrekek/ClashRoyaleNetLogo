@@ -1,5 +1,5 @@
-# IntroCSFinal
-Intro to Computer Science Final 2022 
+# ClashRoyaleNetLogo
+Final Assingment for Intro to Computer Science Spring 2022
 
 By Khin Aung and Haokun (Daniel) Xu
 
