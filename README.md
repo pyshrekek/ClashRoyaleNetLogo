@@ -3,6 +3,9 @@ Final Assingment for Intro to Computer Science Spring 2022
 
 By Khin Aung and Haokun (Daniel) Xu
 
+
+![](https://github-readme-stats.vercel.app/api/pin/?username=pyshrekek&repo=ClashRoyaleNetLogo&cache_seconds=86400&theme=tokyonight)
+
 ## TODO:
 
 ### BOLDED indicates high priority
