@@ -1,14 +1,12 @@
 globals [elixir time-elapsed time-left bottom-crowns top-crowns deck-rotation]
 
 breed [towers tower]
-breed [tests test]
 breed [cards card]
 breed [units unit]
 
-tests-own [hp]
 cards-own [drag-state pos troop cost global? current-pos]
 towers-own [hp pos side]
-units-own [hp unit-dmg building-dmg speed troop side fly? unit-range]
+units-own [hp unit-dmg building-dmg speed troop side fly? unit-range targeted-troop]
 
 to setup
   ca
@@ -27,11 +25,10 @@ to go
   clock
   elixir-update
   get-card-pos
-  test-move
-  test-attack
   towers-update
   crowns-update
   card-drag
+  target
   units-move
 end
 
@@ -83,30 +80,6 @@ end
 
 
 ;; CARDS
-to test-spawn
-  hatch-tests 1
-  [
-    setxy mouse-xcor mouse-ycor
-    set shape "bug"
-    set heading 0
-  ]
-end
-
-to test-move
-  every .3
-  [
-    ask tests [fd 1]
-  ]
-end
-
-to test-attack
-  ask tests
-  [
-    ask towers-here with [side = "top"] [set hp 0]
-  ]
-end
-
-
 
 to card-setup ;creates cards
   card-spawn 1
@@ -182,7 +155,7 @@ end
 
 ;;Whenever the card is released and within the placeable area of the player, spawn troop, un-highlight patch, and create new card in the deck
 to release-valid
-  units-spawn
+  units-spawn troop
   reset-perspective
   set drag-state "waiting"
   ; insert current troop into last position of deck, then set troop of next card as top card in deck
@@ -256,11 +229,11 @@ end
 
 ;================================================================================
 
-to units-spawn
+to units-spawn [t]
   ; variables: hp dmg speed troop side fly?
   (
     ifelse
-    (troop = "Giant")
+    (t = "Giant")
     [
       hatch-units 1
       [
@@ -270,12 +243,12 @@ to units-spawn
         set building-dmg 30
         set speed .6
         set fly? false
-        set troop troop
-        set shape (word troop "-unit")
+        set troop t
+        set shape (word t "-unit")
       ]
     ]
 
-    (troop = "MiniPekka")
+    (t = "MiniPekka")
     [
       hatch-units 1
       [
@@ -285,18 +258,21 @@ to units-spawn
         set building-dmg 40
         set speed 1
         set fly? false
-        set troop troop
-        set shape (word troop "-unit")
+        set troop t
+        set shape (word t "-unit")
       ]
+    ]
+    [
+      hatch-units 1
     ]
   )
 end
 
 to units-move
-    ask units
-    [
-      fd .0007 * speed
-    ]
+  ask units
+  [
+    fd .0007 * speed
+  ]
 end
 
 to towers-update ;tower attacking and death
@@ -306,6 +282,19 @@ to towers-update ;tower attacking and death
   ]
 end
 
+to target
+  ask units
+  [
+    ifelse (targeted-troop = 0 or targeted-troop = nobody)
+    [
+      set targeted-troop (min-one-of units with [side != [side] of self] [distance self])
+    ]
+    [
+      face targeted-troop
+    ]
+  ]
+
+end
 
 
 ;; UI/GAME PROGRESSION
