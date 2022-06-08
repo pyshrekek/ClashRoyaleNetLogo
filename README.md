@@ -30,6 +30,8 @@ By Khin Aung and Haokun (Daniel) Xu
         attack procedure (melee towers will move towards the target before attacking), loop attack until opposing troop dies (or you die but that doesn't need to be coded). Once opposing troop dies then repeat targetting procedure. 
         - While there no opposing troop in range execute the structure targetting procedure.
 - [ ] **valid troop placement** (extended placement values when tower is broken)
+- [ ] **enemy spawning (repurpose player code)**
+
 
 ### Game UI / Map
 - [x] Elixir bar
