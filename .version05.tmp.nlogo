@@ -413,7 +413,7 @@ to enemies-spawn [t]
         set atk-speed 1.1
         set fly? false
         set unit-range .5
-  ;      set shape (word t "-unit")
+        set shape (word t "-unit")
         set troop t
         set side "top"
       ]
@@ -809,7 +809,7 @@ SWITCH
 475
 god-mode
 god-mode
-1
+0
 1
 -1000
 
