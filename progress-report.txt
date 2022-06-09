@@ -1,1 +1,1 @@
-Over the weekend, we did not have much time to work on the project so we did not get much coding done. However, we worked on implementing more turtle shapes to represent the individual units in the game, along with taking the numbers/stats from the real game to make it feel as close as possible. 
+We have been limited on time, but we have been working on just adding more sprites and slowly working our way towards a working pathing and targeting system. Khin is working on targeting, while Daniel works on pathing and more turtle shapes.
