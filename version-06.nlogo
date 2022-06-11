@@ -1,17 +1,17 @@
-globals [elixir time-elapsed time-left bottom-crowns top-crowns deck-rotation top-deck-rotation]
+globals [elixir time-elapsed time-left bottom-crowns top-crowns deck-rotation]
 
 breed [towers tower]
 breed [cards card]
 breed [units unit]
 
+patches-own [priority]
 cards-own [drag-state pos troop cost global? current-pos]
 towers-own [hp pos side]
-units-own [hp dmg speed atk-speed troop side fly? target-range atk-range targeted-troop]
+units-own [hp dmg speed atk-speed troop side fly? atk-range sight-range targeted-troop]
 
 to setup
   ca
   set deck-rotation ["SkeletonArmy" "HogRider" "Archers" "Minions" "Arrows" "Giant" "GoblinBarrel" "MiniPekka"]
-  set top-deck-rotation ["SkeletonArmy" "HogRider" "Archers" "Minions" "Arrows" "Giant" "GoblinBarrel" "MiniPekka"]
   set time-elapsed 0
   resize-world 0 20 0 40
   set-patch-size 18
@@ -35,7 +35,7 @@ end
 
 ;; SETUP COMMANDS
 to board ;sets up the game field and UI
-         ;; playing field
+  ;; playing field
   ask patches [set pcolor 65]
   ask patches with [(even? pxcor and even? pycor) or (odd? pxcor and odd? pycor)] [set pcolor 67]
   ask patches with [pycor = 20] [set pcolor blue]
@@ -49,6 +49,17 @@ to board ;sets up the game field and UI
     ((pxcor >= 4 and pxcor <= 16) and (pycor = 6 or pycor = 34))
   ]
   [set pcolor 27]
+  ;; paths around towers
+  ask patches with [
+    ((((pxcor >= 2 and pxcor <= 6) or (pxcor >= 14 and pxcor <= 18)) and
+      ((pycor >= 8 and pycor <= 11) or (pycor >= 28 and pycor <= 31))) or
+      ((pxcor >= 8 and pxcor <= 12) and ((pycor >= 4 and pycor <= 8) or (pycor >= 32 and pycor <= 36))))
+  ] [set pcolor 27]
+
+  ;; pathing priority
+  ask (patch-set patch 4 20 patch 16 20) [set priority 1]
+  ;ask (patch-set patch
+
 end
 
 to towers-make ;spawns in towers
@@ -115,7 +126,7 @@ to card-spawn [p]
 end
 
 ;================================================================================
-; STATE MACHINE KINDA THING IDK LOL
+;STATE MACHINE KINDA THING IDK LOL
 
 to card-drag ;allows for player interaction with cards
              ;; POSSIBLE STATES: WAITING, DRAGGING
@@ -333,7 +344,9 @@ to units-spawn [t]
     ]
     (t = "SkeletonArmy")
     [
-      hatch-units 15
+      ask n-of 15 patches in-radius 3 with [count turtles-here = 0]
+      [
+      sprout-units 1
       [
         set hp 108
         set dmg 108
@@ -343,6 +356,8 @@ to units-spawn [t]
         set atk-range .5
         set shape (word t "-unit")
         set troop t
+          set heading 0
+        ]
       ]
     ]
   )
@@ -367,13 +382,20 @@ to target
   [
     ifelse (targeted-troop = 0 or targeted-troop = nobody)
     [
-      set targeted-troop (min-one-of units with [(side != [side] of self) and (distance self <= target-range)] [distance self])
+      set targeted-troop (min-one-of units with [side != [side] of self] [distance self])
     ]
     [
       face targeted-troop
     ]
   ]
 
+end
+
+to pathing
+  ask units
+  [
+
+  ]
 end
 
 
@@ -743,6 +765,15 @@ Circle -5825686 true false 30 270 60
 Circle -5825686 true false 120 270 60
 Circle -5825686 true false 210 270 60
 
+archers-unit
+true
+0
+Rectangle -13791810 true false 105 225 195 300
+Circle -1184463 true false 75 90 150
+Polygon -5825686 true false 75 120 90 90 195 90 210 90 225 135 225 195 210 150 150 150 135 150 90 150 90 195 75 195 75 135
+Polygon -6459832 true false 146 74 131 104 131 149 176 254 206 299 161 284 146 239 131 194 116 119 146 74
+Line -1 false 132 91 191 286
+
 arrow
 true
 0
@@ -970,6 +1001,19 @@ Circle -5825686 true false 26 266 67
 Circle -5825686 true false 206 266 67
 Circle -5825686 true false 116 266 67
 
+goblinbarrel-unit
+true
+0
+Polygon -13840069 true false 106 63 161 58 189 131 163 159 112 159 93 139
+Polygon -13840069 true false 107 145 87 202 109 267 196 260 201 193 163 138
+Polygon -6459832 true false 119 169 117 246 179 235 169 164
+Polygon -10899396 true false 119 262 117 290 133 290 133 258
+Polygon -10899396 true false 164 256 166 282 183 282 180 255
+Polygon -10899396 true false 188 189 222 176 219 131 240 130 236 190 191 206
+Polygon -10899396 true false 103 194 69 181 72 136 51 135 55 195 100 211
+Polygon -14835848 true false 168 83 208 66 231 77 212 86 188 85 164 98
+Polygon -14835848 true false 109 82 69 65 46 76 65 85 89 84 113 97
+
 hogrider
 false
 0
@@ -1073,6 +1117,16 @@ Polygon -16777216 true false 118 114 144 98 165 117 142 110
 Circle -5825686 true false 30 270 60
 Circle -5825686 true false 210 270 60
 Circle -5825686 true false 120 270 60
+
+minions-unit
+true
+0
+Polygon -13345367 true false 150 240 150 285 180 285 165 240
+Polygon -13345367 true false 105 240 90 285 120 285 120 225
+Polygon -13345367 true false 154 166 218 118 229 180 208 163 204 196 187 181 178 216 154 182
+Polygon -13345367 true false 103 170 39 122 28 184 49 167 53 200 70 185 79 220 103 186
+Polygon -13791810 true false 109 127 72 171 84 244 175 257 193 177 151 126
+Polygon -13791810 true false 111 140 79 102 123 54 164 58 183 105 147 142
 
 minipekka
 false
