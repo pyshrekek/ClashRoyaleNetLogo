@@ -1,84 +1,52 @@
-globals [elixir time-elapsed time-left bottom-crowns top-crowns deck-rotation top-deck-rotation]
+globals
+[
+  elixir top-elixir
+  time-elapsed time-left
+  bottom-crowns top-crowns
+  deck-rotation top-deck-rotation
+]
 
 breed [towers tower]
 breed [cards card]
 breed [units unit]
+breed [top-cards top-card]
 
+patches-own [priority]
 cards-own [drag-state pos troop cost global? current-pos]
-towers-own [hp pos side]
-units-own [hp dmg speed atk-speed troop side fly? target-range atk-range targeted-troop]
+top-cards-own [pos troop cost global?]
+towers-own [hp pos side troop]
+units-own [hp dmg speed atk-speed troop side fly? atk-range sight-range targeted-troop]
 
 to setup
   ca
-  set deck-rotation ["SkeletonArmy" "HogRider" "Archers" "Minions" "Arrows" "Giant" "GoblinBarrel" "MiniPekka"]
-  set top-deck-rotation ["SkeletonArmy" "HogRider" "Archers" "Minions" "Arrows" "Giant" "GoblinBarrel" "MiniPekka"]
+  set deck-rotation ["Archers" "Arrows" "Giant" "GoblinBarrel" "HogRider" "Minions" "MiniPekka" "SkeletonArmy"]
+  set top-deck-rotation ["Archers" "Arrows" "Giant" "GoblinBarrel" "HogRider" "Minions" "MiniPekka" "SkeletonArmy"]
+  set top-deck-rotation shuffle top-deck-rotation
   set time-elapsed 0
   resize-world 0 20 0 40
   set-patch-size 18
   set elixir 4
+  set top-elixir 4
   board
   towers-make
   card-setup
+  top-card-setup
   set time-left "3:00"
 end
 
 to go
   clock
   elixir-update
-  get-card-pos
   towers-update
   crowns-update
+
+  top-send-troop
+
+  get-card-pos
   card-drag
+
   target
-  units-move
 end
-
-;; SETUP COMMANDS
-to board ;sets up the game field and UI
-         ;; playing field
-  ask patches [set pcolor 65]
-  ask patches with [(even? pxcor and even? pycor) or (odd? pxcor and odd? pycor)] [set pcolor 67]
-  ask patches with [pycor = 20] [set pcolor blue]
-  ;; deck
-  ask patches with [pycor <= 3 or pycor >= 37] [set pcolor brown]
-  ask patches with [even? pxcor and pycor = 0] [set pcolor black]
-  ;; paths
-  ask patches with
-  [
-    ((pxcor = 4 or pxcor = 16) and (pycor >= 6 and pycor <= 34)) or
-    ((pxcor >= 4 and pxcor <= 16) and (pycor = 6 or pycor = 34))
-  ]
-  [set pcolor 27]
-end
-
-to towers-make ;spawns in towers
-               ;; at (4,10) (16,10) (10,6) (4,30) (16,30) (10,34)
-  create-towers 1 [set pos "bottom-left" set side "bottom" set shape "tower"]
-  create-towers 1 [set pos "bottom-right" set side "bottom" set shape "tower"]
-  create-towers 1 [set pos "bottom-king" set side "bottom" set shape "king"]
-  create-towers 1 [set pos "top-left" set side "top" set shape "tower"]
-  create-towers 1 [set pos "top-right" set side "top" set shape "tower"]
-  create-towers 1 [set pos "top-king" set side "top" set shape "king"]
-  ask towers
-  [
-    ifelse (side = "top")
-    [set color red]
-    [set color blue]
-    ifelse (pos = "top-king" or pos = "bottom-king")
-    [set size 4]
-    [set size 3]
-    (ifelse
-      (pos = "bottom-left") [set xcor 4 set ycor 10 face patch 4 20 set hp 5000]
-      (pos = "bottom-right") [set xcor 16 set ycor 10 face patch 16 20 set hp 5000]
-      (pos = "bottom-king") [set xcor 10 set ycor 6 face patch 10 20 set hp 7500]
-      (pos = "top-left") [set xcor 4 set ycor 30 face patch 4 20 set hp 5000]
-      (pos = "top-right") [set xcor 16 set ycor 30 face patch 16 20 set hp 5000]
-      (pos = "top-king") [set xcor 10 set ycor 34 face patch 10 20 set hp 7500]
-    )
-  ]
-end
-
-
 
 ;; CARDS
 
@@ -96,7 +64,49 @@ to card-setup ;creates cards
   ]
 end
 
-;; p is the position of the card (1, 2, 3, or 4) - caller is the caller of the function (observer, turtle)
+to top-card-spawn [p]
+  create-top-cards 1
+  [
+    set pos p
+    set troop first top-deck-rotation
+    set top-deck-rotation remove [troop] of self top-deck-rotation
+    hide-turtle
+    (
+      ifelse
+      (troop = "Archers") [set cost 3 set global? false]
+      (troop = "Arrows") [set cost 3 set global? true]
+      (troop = "Giant") [set cost 5 set global? false]
+      (troop = "GoblinBarrel") [set cost 3 set global? true]
+      (troop = "HogRider") [set cost 4 set global? false]
+      (troop = "Minions") [set cost 3 set global? false]
+      (troop = "MiniPekka") [set cost 4 set global? false]
+      (troop = "SkeletonArmy") [set cost 3 set global? false]
+    )
+  ]
+end
+
+to top-card-setup
+  top-card-spawn 1
+  top-card-spawn 2
+  top-card-spawn 3
+  top-card-spawn 4
+end
+
+to top-send-troop
+  let pos-send 1 + random 3
+  ifelse (top-elixir >= (first [cost] of top-cards with [pos = pos-send]))
+  [
+    ask one-of towers with [pos = "top-left" or pos = "top-right"]
+    [
+      units-spawn (first [troop] of top-cards with [pos = pos-send])
+      set top-elixir top-elixir - (first [cost] of top-cards with [pos = pos-send])
+      set top-deck-rotation insert-item ((position (last top-deck-rotation) top-deck-rotation) + 1) top-deck-rotation [troop] of self
+    ]
+  ]
+  []
+end
+
+;; p is the position of the card (1, 2, 3, or 4)
 to card-spawn [p]
   create-cards 1
   [
@@ -104,6 +114,7 @@ to card-spawn [p]
     set troop (one-of deck-rotation)
     set shape troop
     set deck-rotation remove [troop] of self deck-rotation
+    set drag-state "waiting"
     (
       ifelse
       (pos = 1) [setxy 2.5 3]
@@ -115,7 +126,7 @@ to card-spawn [p]
 end
 
 ;================================================================================
-; STATE MACHINE KINDA THING IDK LOL
+;STATE MACHINE KINDA THING IDK LOL
 
 to card-drag ;allows for player interaction with cards
              ;; POSSIBLE STATES: WAITING, DRAGGING
@@ -294,7 +305,7 @@ to units-spawn [t]
       hatch-units 1
       [
         set hp 2248
-      set dmg 135
+        set dmg 135
         set speed 120
         set atk-speed 1.6
         set fly? false
@@ -333,19 +344,24 @@ to units-spawn [t]
     ]
     (t = "SkeletonArmy")
     [
-      hatch-units 15
+      ask n-of 15 patches in-radius 3 with [count turtles-here = 0]
       [
-        set hp 108
-        set dmg 108
-        set speed 90
-        set atk-speed 1
-        set fly? false
-        set atk-range .5
-        set shape (word t "-unit")
-        set troop t
+        sprout-units 1
+        [
+          set hp 108
+          set dmg 108
+          set speed 90
+          set atk-speed 1
+          set fly? false
+          set atk-range .5
+          set shape (word t "-unit")
+          set troop t
+          set heading 0
+        ]
       ]
     ]
   )
+  ask units [set color gray]
 end
 
 to units-move
@@ -367,7 +383,7 @@ to target
   [
     ifelse (targeted-troop = 0 or targeted-troop = nobody)
     [
-      set targeted-troop (min-one-of units with [(side != [side] of self) and (distance self <= target-range)] [distance self])
+      set targeted-troop (min-one-of units with [(side != [side] of self) and distance self <= sight-range] [distance self])
     ]
     [
       face targeted-troop
@@ -376,6 +392,68 @@ to target
 
 end
 
+to pathing
+  ask units
+  [
+
+  ]
+end
+
+;; SETUP COMMANDS
+to board ;sets up the game field and UI
+         ;; playing field
+  ask patches [set pcolor 65]
+  ask patches with [(even? pxcor and even? pycor) or (odd? pxcor and odd? pycor)] [set pcolor 67]
+  ask patches with [pycor = 20] [set pcolor blue]
+  ;; deck
+  ask patches with [pycor <= 3 or pycor >= 37] [set pcolor brown]
+  ask patches with [even? pxcor and pycor = 0] [set pcolor black]
+  ;; paths
+  ask patches with
+  [
+    ((pxcor = 4 or pxcor = 16) and (pycor >= 6 and pycor <= 34)) or
+    ((pxcor >= 4 and pxcor <= 16) and (pycor = 6 or pycor = 34))
+  ]
+  [set pcolor 27]
+  ;; paths around towers
+  ask patches with [
+    ((((pxcor >= 2 and pxcor <= 6) or (pxcor >= 14 and pxcor <= 18)) and
+      ((pycor >= 8 and pycor <= 11) or (pycor >= 28 and pycor <= 31))) or
+      ((pxcor >= 8 and pxcor <= 12) and ((pycor >= 4 and pycor <= 8) or (pycor >= 32 and pycor <= 36))))
+  ]
+  [set pcolor 27]
+
+  ;; pathing priority
+  ask (patch-set patch 4 20 patch 16 20) [set priority 1]
+  ;ask (patch-set patch
+end
+
+to towers-make ;spawns in towers
+               ;; at (4,10) (16,10) (10,6) (4,30) (16,30) (10,34)
+  create-towers 1 [set pos "bottom-left" set side "bottom" set shape "tower"]
+  create-towers 1 [set pos "bottom-right" set side "bottom" set shape "tower"]
+  create-towers 1 [set pos "bottom-king" set side "bottom" set shape "king"]
+  create-towers 1 [set pos "top-left" set side "top" set shape "tower"]
+  create-towers 1 [set pos "top-right" set side "top" set shape "tower"]
+  create-towers 1 [set pos "top-king" set side "top" set shape "king"]
+  ask towers
+  [
+    ifelse (side = "top")
+    [set color red]
+    [set color blue]
+    ifelse (pos = "top-king" or pos = "bottom-king")
+    [set size 4]
+    [set size 3]
+    (ifelse
+      (pos = "bottom-left") [set xcor 4 set ycor 10 face patch 4 20 set hp 5000]
+      (pos = "bottom-right") [set xcor 16 set ycor 10 face patch 16 20 set hp 5000]
+      (pos = "bottom-king") [set xcor 10 set ycor 6 face patch 10 20 set hp 7500]
+      (pos = "top-left") [set xcor 4 set ycor 30 face patch 4 20 set hp 5000]
+      (pos = "top-right") [set xcor 16 set ycor 30 face patch 16 20 set hp 5000]
+      (pos = "top-king") [set xcor 10 set ycor 34 face patch 10 20 set hp 7500]
+    )
+  ]
+end
 
 ;; UI/GAME PROGRESSION
 to clock ;counts time elapsed and time left (assuming game time of 3 minutes)
@@ -383,7 +461,7 @@ to clock ;counts time elapsed and time left (assuming game time of 3 minutes)
   set time-left (word (floor ((180 - time-elapsed) / 60)) ":" (remainder (180 - time-elapsed) 60))
 end
 
-to elixir-update ;updates and counts elixir for player 1
+to elixir-update ;updates and counts elixir
   ifelse (elixir <= 10 and not god-mode)
   [
     ifelse (time-elapsed >= 120)
@@ -391,6 +469,10 @@ to elixir-update ;updates and counts elixir for player 1
     [every 2.8 [set elixir elixir + 1]]
   ]
   [set elixir 10]
+
+  ifelse (time-elapsed >= 120)
+  [every 1.4 [set top-elixir top-elixir + 1]]
+  [every 2.8 [set top-elixir top-elixir + 1]]
 
   ;; draw elixir count on screen
   ask patches with [pxcor <= (elixir * 2) and pxcor != 0 and pxcor != 20 and odd? pxcor and pycor = 0] [set pcolor magenta]
@@ -599,7 +681,7 @@ MONITOR
 828
 327
 NIL
-[troop] of cards with [pos = 1]
+[troop] of top-cards with [pos = 1]
 17
 1
 11
@@ -610,7 +692,7 @@ MONITOR
 827
 386
 NIL
-[troop] of cards with [pos = 2]
+[troop] of top-cards with [pos = 2]
 17
 1
 11
@@ -621,7 +703,7 @@ MONITOR
 831
 439
 NIL
-[troop] of cards with [pos = 3]
+[troop] of top-cards with [pos = 3]
 17
 1
 11
@@ -632,7 +714,7 @@ MONITOR
 832
 502
 NIL
-[troop] of cards with [pos = 4]
+[troop] of top-cards with [pos = 4]
 17
 1
 11
@@ -643,7 +725,7 @@ MONITOR
 714
 808
 NIL
-deck-rotation
+top-deck-rotation
 17
 1
 11
@@ -666,9 +748,20 @@ SWITCH
 475
 god-mode
 god-mode
-0
+1
 1
 -1000
+
+MONITOR
+829
+161
+891
+206
+NIL
+top-elixir
+17
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -743,6 +836,15 @@ Circle -5825686 true false 30 270 60
 Circle -5825686 true false 120 270 60
 Circle -5825686 true false 210 270 60
 
+archers-unit
+true
+0
+Rectangle -13791810 true false 105 225 195 300
+Circle -1184463 true false 75 90 150
+Polygon -5825686 true false 75 120 90 90 195 90 210 90 225 135 225 195 210 150 150 150 135 150 90 150 90 195 75 195 75 135
+Polygon -6459832 true false 146 74 131 104 131 149 176 254 206 299 161 284 146 239 131 194 116 119 146 74
+Line -1 false 132 91 191 286
+
 arrow
 true
 0
@@ -775,6 +877,22 @@ Rectangle -16777216 false false 0 0 300 300
 Circle -5825686 true false 30 270 58
 Circle -5825686 true false 210 270 58
 Circle -5825686 true false 120 270 58
+
+arrows-unit
+true
+0
+Rectangle -6459832 true false 75 120 90 195
+Rectangle -6459832 true false 128 91 143 167
+Rectangle -6459832 true false 184 76 198 149
+Rectangle -6459832 true false 222 125 237 205
+Polygon -1 true false 99 185 65 186 85 216
+Polygon -1 true false 244 193 210 194 230 224
+Polygon -1 true false 205 142 171 143 191 173
+Polygon -1 true false 149 156 115 157 135 187
+Polygon -2674135 true false 82 140 56 102 81 117 102 95
+Polygon -2674135 true false 229 147 203 109 228 124 249 102
+Polygon -2674135 true false 191 99 165 61 190 76 211 54
+Polygon -2674135 true false 136 117 110 79 135 94 156 72
 
 box
 false
@@ -970,6 +1088,19 @@ Circle -5825686 true false 26 266 67
 Circle -5825686 true false 206 266 67
 Circle -5825686 true false 116 266 67
 
+goblinbarrel-unit
+true
+0
+Polygon -13840069 true false 106 63 161 58 189 131 163 159 112 159 93 139
+Polygon -13840069 true false 107 145 87 202 109 267 196 260 201 193 163 138
+Polygon -6459832 true false 119 169 117 246 179 235 169 164
+Polygon -10899396 true false 119 262 117 290 133 290 133 258
+Polygon -10899396 true false 164 256 166 282 183 282 180 255
+Polygon -10899396 true false 188 189 222 176 219 131 240 130 236 190 191 206
+Polygon -10899396 true false 103 194 69 181 72 136 51 135 55 195 100 211
+Polygon -14835848 true false 168 83 208 66 231 77 212 86 188 85 164 98
+Polygon -14835848 true false 109 82 69 65 46 76 65 85 89 84 113 97
+
 hogrider
 false
 0
@@ -1073,6 +1204,16 @@ Polygon -16777216 true false 118 114 144 98 165 117 142 110
 Circle -5825686 true false 30 270 60
 Circle -5825686 true false 210 270 60
 Circle -5825686 true false 120 270 60
+
+minions-unit
+true
+0
+Polygon -13345367 true false 150 240 150 285 180 285 165 240
+Polygon -13345367 true false 105 240 90 285 120 285 120 225
+Polygon -13345367 true false 154 166 218 118 229 180 208 163 204 196 187 181 178 216 154 182
+Polygon -13345367 true false 103 170 39 122 28 184 49 167 53 200 70 185 79 220 103 186
+Polygon -13791810 true false 109 127 72 171 84 244 175 257 193 177 151 126
+Polygon -13791810 true false 111 140 79 102 123 54 164 58 183 105 147 142
 
 minipekka
 false
