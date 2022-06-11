@@ -294,7 +294,7 @@ to units-spawn [t]
       hatch-units 1
       [
         set hp 2248
-        set dmg 135
+      set dmg 135
         set speed 120
         set atk-speed 1.6
         set fly? false
