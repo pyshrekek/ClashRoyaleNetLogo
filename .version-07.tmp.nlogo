@@ -383,7 +383,7 @@ to target
   ;path
   ask units
   [
-    ifelse ([pcolor] of patch-at-heading-and-distance 0 1 = blue)
+    ifelse ([pcolor] of patch-at- 0 1 = blue)
     [face min-one-of (patches with [bottom-priority = 8]) [distance self]]
     [face max-one-of (patches in-radius 7) [bottom-priority]]
   ]
