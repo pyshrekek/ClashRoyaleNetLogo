@@ -10,12 +10,14 @@ breed [towers tower]
 breed [cards card]
 breed [units unit]
 breed [top-cards top-card]
+breed [spells spell]
 
 patches-own [bottom-priority top-priority]
 cards-own [drag-state pos troop cost global? current-pos]
 top-cards-own [pos troop cost global?]
 towers-own [hp pos side troop]
 units-own [hp dmg speed atk-speed troop side fly? atk-range sight-range targeted-troop]
+spells-own [speed troop side landing-patch]
 
 to setup
   ca
@@ -47,6 +49,7 @@ to go
 
   target
   units-move
+
 end
 
 ;; CARDS
@@ -99,10 +102,15 @@ to top-send-troop
   [
     ask one-of towers with [pos = "top-left" or pos = "top-right"]
     [
-      units-spawn (first [troop] of top-cards with [pos = pos-send])
+      units-spawn (first [troop] of top-cards with [pos = pos-send]) "top"
       set top-elixir top-elixir - (first [cost] of top-cards with [pos = pos-send])
-      set top-deck-rotation insert-item ((position (last top-deck-rotation) top-deck-rotation) + 1) top-deck-rotation [troop] of self
+      set top-deck-rotation insert-item ((position (last top-deck-rotation) top-deck-rotation) + 1) top-deck-rotation (first [troop] of top-cards with [pos = pos-send])
     ]
+    ask top-cards with [pos = pos-send]
+    [
+      die
+    ]
+    top-card-spawn pos-send
   ]
   []
 end
@@ -168,7 +176,7 @@ end
 
 ;;Whenever the card is released and within the placeable area of the player, spawn troop, un-highlight patch, and create new card in the deck
 to release-valid
-  units-spawn troop
+  units-spawn troop "bottom"
   reset-perspective
   set drag-state "waiting"
   ; insert current troop into last position of deck, then set troop of next card as top card in deck
@@ -230,7 +238,7 @@ to get-card-pos
       ; on deck
       (ycor < 4 or ycor > 36) [set current-pos "deck"]
       ; on water
-      (ycor = 20 and (xcor <= 3 or (xcor >= 5 and xcor <= 15) or xcor >= 17)) [set current-pos "invalid"]
+      (ycor > 19 and ycor < 21 and (xcor <= 3 or (xcor >= 5 and xcor <= 15) or xcor >= 17)) [set current-pos "invalid"]
       ; global allows for worldwide placement
       (global?) [set current-pos "on-map"]
       ; otherwise you only get your side
@@ -242,55 +250,80 @@ end
 
 ;================================================================================
 
-to units-spawn [t]
+to units-spawn [t s]
   ; variables: hp dmg speed atk-speed troop side fly? atk-range targeted-troop
   ; atk-speed is seconds per attack
   (
     ifelse
     (t = "Archers")
     [
-      hatch-units 3
+      hatch-units 1
       [
+        set size 2.5
         set hp 403
         set dmg 142
         set speed 60
         set atk-speed 1.1
         set fly? false
         set atk-range 5
+        set sight-range 5.5
         set shape (word t "-unit")
         set troop t
+        set side s
+        set xcor xcor + 1
+      ]
+      hatch-units 1
+      [
+        set size 2.5
+        set hp 403
+        set dmg 142
+        set speed 60
+        set atk-speed 1.1
+        set fly? false
+        set atk-range 5
+        set sight-range 5.5
+        set shape (word t "-unit")
+        set troop t
+        set side s
+        set xcor xcor - 1
       ]
     ]
     (t = "Arrows")
     [
       hatch-units 1
       [
+        set size 8
         set hp 1
         set dmg 162
         set speed 200
         set atk-range 4
         set shape (word t "-unit")
         set troop t
+        set side s
       ]
     ]
     (t = "Giant")
     [
       hatch-units 1
       [
+        set size 5
         set hp 5423
         set dmg 337
         set speed 45
         set atk-speed 1.5
         set fly? false
         set atk-range 1
+        set sight-range 7.5
         set shape (word t "-unit")
         set troop t
+        set side s
       ]
     ]
-    (t = "GoblinBarrel")
+    (t = "GoblinBarrelGround")
     [
       hatch-units 3
       [
+        set size 2
         set hp 267
         set dmg 159
         set speed 120
@@ -299,48 +332,89 @@ to units-spawn [t]
         set atk-range .5
         set shape (word t "-unit")
         set troop t
+        set side s
       ]
     ]
     (t = "HogRider")
     [
       hatch-units 1
       [
+        set size 3.5
         set hp 2248
         set dmg 135
         set speed 120
         set atk-speed 1.6
         set fly? false
         set atk-range .8
+        set sight-range 9.5
         set shape (word t "-unit")
-        set troop t
+        set troop troop
+        set side s
       ]
     ]
     (t = "Minions")
     [
-      hatch-units 3
+      hatch-units 1
       [
+        set size 2.5
         set hp 305
         set dmg 135
         set speed 90
         set atk-speed 1
         set fly? true
         set atk-range 1.6
+        set sight-range 5.5
         set shape (word t "-unit")
         set troop t
+        set side s
+        set xcor xcor + 1
+      ]
+      hatch-units 1
+      [
+        set size 2.5
+        set hp 305
+        set dmg 135
+        set speed 90
+        set atk-speed 1
+        set fly? true
+        set atk-range 1.6
+        set sight-range 5.5
+        set shape (word t "-unit")
+        set troop t
+        set side s
+        set xcor xcor - 1
+      ]
+      hatch-units 1
+      [
+        set size 2.5
+        set hp 305
+        set dmg 135
+        set speed 90
+        set atk-speed 1
+        set fly? true
+        set atk-range 1.6
+        set sight-range 5.5
+        set shape (word t "-unit")
+        set troop t
+        set side s
+        set ycor ycor - 1
       ]
     ]
     (t = "MiniPekka")
     [
       hatch-units 1
       [
+        set size 3
         set hp 1804
         set dmg 955
         set speed 90
         set atk-speed 1.6
         set fly? false
         set atk-range .5
+        set sight-range 5
         set shape (word t "-unit")
-        set troop t
+        set troop troop
+        set side s
       ]
     ]
     (t = "SkeletonArmy")
@@ -349,17 +423,35 @@ to units-spawn [t]
       [
         sprout-units 1
         [
+          set size 1
           set hp 108
           set dmg 108
           set speed 90
           set atk-speed 1
           set fly? false
           set atk-range .5
+          set sight-range 5.5
           set shape (word t "-unit")
           set troop t
+          set side s
           set heading 0
         ]
       ]
+    ]
+    (t = "GoblinBarrel")
+    [
+      ask towers with [side = s and pos = (word s "-king")]
+        [
+          hatch-spells 1
+          [
+            set size 3
+            set speed 200
+            set troop t
+            set side s
+            set landing-patch patch mouse-xcor mouse-ycor
+            set shape (word t "-unit")
+          ]
+        ]
     ]
   )
   ask units [set color gray]
@@ -368,6 +460,14 @@ end
 to units-move
   ask units
   [
+    fd .000007 * speed
+  ]
+end
+
+to spells-move
+  ask spells
+  [
+    face landing-patch
     fd .000007 * speed
   ]
 end
@@ -383,10 +483,26 @@ to target
   ;path
   ask units
   [
-    ifelse ([pcolor] of patch-at- 0 1 = blue)
-    [face min-one-of (patches with [bottom-priority = 8]) [distance self]]
-    [face max-one-of (patches in-radius 7) [bottom-priority]]
+    ifelse
+    (side = "bottom")
+    [
+      ifelse
+      (ycor <= 19)
+      [face max-one-of (patches in-radius 6 with [pycor <= 19]) [bottom-priority]]
+      [
+        face max-one-of (patches in-radius 6) [bottom-priority]
+      ]
+    ]
+    [
+      ifelse
+      (ycor >= 21)
+      [face max-one-of (patches in-radius 6 with [pycor >= 21]) [top-priority]]
+      [
+        face max-one-of (patches in-radius 6) [top-priority]
+      ]
+    ]
   ]
+
 
 
   ;target
@@ -421,20 +537,24 @@ to board ;sets up the game field and UI
   ;; paths around towers
   ask patches with [
     ((((pxcor >= 2 and pxcor <= 6) or (pxcor >= 14 and pxcor <= 18)) and
-      ((pycor >= 8 and pycor <= 11) or (pycor >= 28 and pycor <= 31))) or
+      ((pycor >= 9 and pycor <= 12) or (pycor >= 28 and pycor <= 31))) or
       ((pxcor >= 8 and pxcor <= 12) and ((pycor >= 4 and pycor <= 8) or (pycor >= 32 and pycor <= 36))))
   ]
   [set pcolor 27]
 
   ;; pathing bottom-priority
   ; start at y 12 until y 27
-  ask patches with [(pxcor = 4 or pxcor = 16) and (pycor >= 12 and pycor <= 27)]
+  ask patches with [(pxcor = 4 or pxcor = 16) and (pycor >= 13 and pycor <= 27)]
     [
-      set bottom-priority [pycor] of self - 11
+      set bottom-priority [pycor] of self - 12
     ]
   ask (patch-set patch 4 30 patch 16 30 patch 10 34) [set bottom-priority 17]
   ;; pathing top-priority
-  ask (patch-set patch 4 10 patch 16 10 patch 16 10) [set top-priority 2]
+  ask patches with [(pxcor = 4 or pxcor = 16) and (pycor >= 13 and pycor <= 27)]
+    [
+      set top-priority 28 - [pycor] of self
+    ]
+  ask (patch-set patch 4 11 patch 16 11 patch 16 11) [set top-priority 17]
 end
 
 to towers-make ;spawns in towers
@@ -454,8 +574,8 @@ to towers-make ;spawns in towers
     [set size 4]
     [set size 3]
     (ifelse
-      (pos = "bottom-left") [set xcor 4 set ycor 10 face patch 4 20 set hp 5000]
-      (pos = "bottom-right") [set xcor 16 set ycor 10 face patch 16 20 set hp 5000]
+      (pos = "bottom-left") [set xcor 4 set ycor 11 face patch 4 20 set hp 5000]
+      (pos = "bottom-right") [set xcor 16 set ycor 11 face patch 16 20 set hp 5000]
       (pos = "bottom-king") [set xcor 10 set ycor 6 face patch 10 20 set hp 7500]
       (pos = "top-left") [set xcor 4 set ycor 30 face patch 4 20 set hp 5000]
       (pos = "top-right") [set xcor 16 set ycor 30 face patch 16 20 set hp 5000]
@@ -1098,6 +1218,16 @@ Circle -5825686 true false 206 266 67
 Circle -5825686 true false 116 266 67
 
 goblinbarrel-unit
+true
+0
+Polygon -6459832 true false 120 31 210 46 240 121 225 226 180 271 90 256 60 181 90 76
+Line -16777216 false 92 74 236 115
+Line -16777216 false 63 179 225 224
+Polygon -10899396 true false 147 122 120 113 110 147 146 187 181 167 195 134
+Circle -1184463 true false 124 124 17
+Circle -1184463 true false 154 131 17
+
+goblinbarrelground-unit
 true
 0
 Polygon -13840069 true false 106 63 161 58 189 131 163 159 112 159 93 139
