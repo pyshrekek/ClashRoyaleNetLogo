@@ -47,7 +47,7 @@ By Khin Aung and Haokun (Daniel) Xu
 # Troop Stats
 - **VALUES ARE SUBJECT TO CHANGE**
 
-| Troop        | size | hp   | unit-dmg | building-dmg | speed | sec/atk | fly? | unit-range          | attack-type | sight-range | notes               |
+| Troop        | size | hp   | unit-dmg | building-dmg | speed | sec/atk | fly? | atk-range           | attack-type | sight-range | notes               |
 |--------------|------|------|----------|--------------|-------|---------|------|---------------------|-------------|-------------|---------------------|
 | Archers      | 2.5  | 403  | 142      | 142          | 60    | 1.1     | no   | 5                   | ranged      | 5.5         | spawns 2            |
 | Arrows       | 8    | n/a  | 162 x 3  | 49 x 3       | n/a   | n/a     | n/a  | 4 (radius of spell) | spell       | n/a         |                     |
