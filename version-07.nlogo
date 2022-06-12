@@ -460,7 +460,15 @@ end
 to units-move
   ask units
   [
-    fd .000007 * speed
+    ifelse
+    (targeted-troop = 0 or targeted-troop = nobody)
+    [fd .000007 * speed]
+    [
+      ifelse
+      (distance targeted-troop <= atk-range)
+      [units-attack]
+      [fd .000007 * speed]
+    ]
   ]
 end
 
@@ -470,6 +478,10 @@ to spells-move
     face landing-patch
     fd .000007 * speed
   ]
+end
+
+to units-attack
+
 end
 
 to towers-update ;tower attacking and death
@@ -508,13 +520,15 @@ to target
   ;target
   ask units
   [
-    ifelse (targeted-troop = 0 or targeted-troop = nobody)
+    ifelse
+    (targeted-troop = 0 or targeted-troop = nobody)
     [
-      set targeted-troop (min-one-of units with [(side != [side] of self) and distance self <= sight-range] [distance self])
+      ifelse
+      (side = "bottom")
+      [set targeted-troop min-one-of units with [side = "top"] [distance self]]
+      [set targeted-troop min-one-of units with [side = "bottom"] [distance self]]
     ]
-    [
-      face targeted-troop
-    ]
+    [face targeted-troop]
   ]
 end
 

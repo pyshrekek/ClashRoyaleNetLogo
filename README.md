@@ -16,15 +16,15 @@ By Khin Aung and Haokun (Daniel) Xu
     - [x] spawn troop on drop (state machine type beat)
     - [x] deck rotation
     - [could use this model](http://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Code%20Examples/Mouse%20Drag%20Multiple%20Example.nlogo)
-- [ ] card attacks
-- [x] **tower pathing**
+- [ ] **card attacks**
+- [x] tower pathing
     - Use SlimeMold like pheromone pathing
 - [x] structure hp
 - [ ] match progression (based on time)
     - [x] 2x elixir under 1 min
     - [ ] overtime
 - [x] elixir (subtract when place cards)
-- [ ] **troop targetting**
+- [x] troop targetting
     - Both enemy troops and your troops follow the same procedure: 
         - When an opposing troop is within (troop range) then it will lock on and start executing the
         attack procedure (melee towers will move towards the target before attacking), loop attack until opposing troop dies (or you die but that doesn't need to be coded). Once opposing troop dies then repeat targetting procedure. 
@@ -37,7 +37,7 @@ By Khin Aung and Haokun (Daniel) Xu
 - [x] Time left
 - [x] Crown count
 - [x] Tower / Enemy HP
-- [ ] Range display
+- ~~[ ] Range display~~
 - [x] Deck display w/ cooldown/cost
     - Make decks a rectangle with a netlogo vector shape (importing actual card images is very janky and does not work as a turtle)
     - Assign each card in the deck an appropriate vector shape that makes some degree of sense. (Person is giant) (person on wolf is HOG RIDEEEER)
