@@ -37,7 +37,7 @@ By Khin Aung and Haokun (Daniel) Xu
 - [x] Time left
 - [x] Crown count
 - [x] Tower / Enemy HP
-- ~~[ ] Range display~~
+- [ ] ~~Range display~~
 - [x] Deck display w/ cooldown/cost
     - Make decks a rectangle with a netlogo vector shape (importing actual card images is very janky and does not work as a turtle)
     - Assign each card in the deck an appropriate vector shape that makes some degree of sense. (Person is giant) (person on wolf is HOG RIDEEEER)
