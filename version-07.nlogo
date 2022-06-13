@@ -20,7 +20,7 @@ breed [hehehehaws hehehehaw]
 patches-own [bottom-priority top-priority]
 cards-own [drag-state pos troop cost global? current-pos]
 top-cards-own [pos troop cost global?]
-towers-own [hp pos side troop dmg atk-range]
+towers-own [hp pos side troop dmg atk-range sight-range targeted-troop]
 units-own [hp dmg speed atk-speed troop side fly? atk-range sight-range targeted-troop atk-type dps]
 spells-own [speed troop side landing-patch]
 projectiles-own [speed targeted-troop dmg]
@@ -65,6 +65,7 @@ to go
 
   ; unit targeting
   target
+  towers-target
 
   ; move stuff
   projectiles-move
@@ -585,9 +586,6 @@ to spells-move
   ]
 end
 
-
-;"Archers" "Arrows" "Giant" "GoblinBarrel" "HogRider" "Minions" "MiniPekka" "SkeletonArmy"
-
 to units-attack
   every 1
   [
@@ -613,23 +611,6 @@ to units-attack
               [
                 set hp hp - d
               ]
-;              (
-;                ifelse
-;                ([breed] of targeted-troop = "towers" or [breed] of targeted-troop = "tower")
-;                [
-;                  ask min-one-of towers [distance self]
-;                  [
-;                    set hp hp - d
-;                  ]
-;                ]
-;                ([breed] of targeted-troop = "units" or [breed] of targeted-troop = "unit")
-;                [
-;                  ask min-one-of units with [distance self <= atk-range and side != s] [distance self]
-;                  [
-;                    set hp hp - d
-;                  ]
-;                ]
-;              )
             ]
           )
         ]
@@ -715,9 +696,25 @@ to units-die
 end
 
 to towers-attack
-  ask towers
+  every 1
   [
-
+    ask towers with [pos = "bottom-king" or pos = "top-king"]
+    [
+      ifelse
+      (targeted-troop = 0 or targeted-troop = nobody)
+      []
+      [projectiles-spawn targeted-troop "tower" dmg]
+    ]
+  ]
+  every .8
+  [
+    ask towers with [pos = "bottom-left" or pos = "bottom-right" or pos = "top-left" or pos = "top-right"]
+    [
+      ifelse
+      (targeted-troop = 0 or targeted-troop = nobody)
+      []
+      [projectiles-spawn targeted-troop "tower" dmg]
+    ]
   ]
 end
 
@@ -759,31 +756,76 @@ to target
     ifelse
     (targeted-troop = 0 or targeted-troop = nobody)
     [
-      ifelse
-      (side = "bottom")
-      [
-        set targeted-troop min-one-of
-        (
-          turtle-set
-          min-one-of units in-radius sight-range with [side = "top"] [distance self]
-          min-one-of towers in-radius sight-range with [side = "top"] [distance self]
-        )
-        [distance self]
-      ]
-      [
-        set targeted-troop min-one-of
-        (
-          turtle-set
-          min-one-of units in-radius sight-range with [side = "bottom"] [distance self]
-          min-one-of towers in-radius sight-range with [side = "bottom"] [distance self]
-        )
-        [distance self]
-      ]
+      (
+        ifelse
+        (side = "bottom")
+        [
+          ifelse
+          (atk-type = "melee")
+          [
+            set targeted-troop min-one-of
+            (
+              turtle-set
+              min-one-of units in-radius sight-range with [side = "top" and fly? = false] [distance self]
+              min-one-of towers in-radius sight-range with [side = "top"] [distance self]
+            )
+            [distance self]
+          ]
+          [
+            set targeted-troop min-one-of
+            (
+              turtle-set
+              min-one-of units in-radius sight-range with [side = "top"] [distance self]
+              min-one-of towers in-radius sight-range with [side = "top"] [distance self]
+            )
+            [distance self]
+          ]
+        ]
+
+        (side = "top")
+        [
+          ifelse
+          (atk-type = "melee")
+
+          [
+            set targeted-troop min-one-of
+            (
+              turtle-set
+              min-one-of units in-radius sight-range with [side = "bottom" and fly? = false] [distance self]
+              min-one-of towers in-radius sight-range with [side = "bottom"] [distance self]
+            )
+            [distance self]
+          ]
+
+          [
+            set targeted-troop min-one-of
+            (
+              turtle-set
+              min-one-of units in-radius sight-range with [side = "bottom"] [distance self]
+              min-one-of towers in-radius sight-range with [side = "bottom"] [distance self]
+            )
+            [distance self]
+          ]
+        ]
+      )
     ]
     [face targeted-troop]
   ]
 end
 
+to towers-target
+  ask towers
+  [
+    if
+    (targeted-troop = 0 or targeted-troop = nobody)
+    [
+      ifelse
+      (side = "bottom")
+      [set targeted-troop min-one-of units in-radius sight-range with [side = "top"] [distance self]]
+      [set targeted-troop min-one-of units in-radius sight-range with [side = "bottom"] [distance self]]
+    ]
+  ]
+end
 ;; SETUP COMMANDS
 to board ;sets up the game field and UI
          ;; playing field
@@ -829,7 +871,7 @@ to board ;sets up the game field and UI
 end
 
 to towers-spawn ;spawns in towers
-               ;; at (4,10) (16,10) (10,6) (4,30) (16,30) (10,34)
+                ;; at (4,10) (16,10) (10,6) (4,30) (16,30) (10,34)
   create-towers 1 [set pos "bottom-left" set side "bottom" set shape "tower"]
   create-towers 1 [set pos "bottom-right" set side "bottom" set shape "tower"]
   create-towers 1 [set pos "bottom-king" set side "bottom" set shape "king"]
@@ -838,6 +880,9 @@ to towers-spawn ;spawns in towers
   create-towers 1 [set pos "top-king" set side "top" set shape "king"]
   ask towers
   [
+    set dmg 144
+    set sight-range 7
+
     ifelse (side = "top")
     [set color red]
     [set color blue]
@@ -1845,6 +1890,13 @@ Rectangle -2674135 true true 0 120 300 150
 Rectangle -1184463 true false 75 180 75 195
 Polygon -1184463 true false 89 189 99 231 199 233 208 174 177 200 151 169 127 194 88 174
 Polygon -16777216 false false 0 45 45 45 45 105 120 105 120 45 180 45 180 105 255 105 255 45 300 45 300 300 0 300 0 45
+
+tower-projectile
+true
+0
+Rectangle -6459832 true false 147 106 154 212
+Polygon -1 true false 150 114 135 124 149 44 165 120
+Polygon -2674135 true false 151 207 138 199 133 263 147 232 164 263 163 193
 
 tree
 false
