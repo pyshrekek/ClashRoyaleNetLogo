@@ -1,9 +1,12 @@
+extensions [sound]
+
 globals
 [
   elixir top-elixir
   time-elapsed time-left
   bottom-crowns top-crowns
   deck-rotation top-deck-rotation
+  speed-constant
 ]
 
 breed [towers tower]
@@ -11,49 +14,89 @@ breed [cards card]
 breed [units unit]
 breed [top-cards top-card]
 breed [spells spell]
+breed [projectiles projectile]
+breed [hehehehaws hehehehaw]
 
 patches-own [bottom-priority top-priority]
 cards-own [drag-state pos troop cost global? current-pos]
 top-cards-own [pos troop cost global?]
-towers-own [hp pos side troop]
-units-own [hp dmg speed atk-speed troop side fly? atk-range sight-range targeted-troop]
+towers-own [hp pos side troop dmg atk-range]
+units-own [hp dmg speed atk-speed troop side fly? atk-range sight-range targeted-troop atk-type dps]
 spells-own [speed troop side landing-patch]
+projectiles-own [speed targeted-troop dmg]
 
 to setup
+  ; reset
   ca
+
+  ; set global variables
+  set speed-constant .000007
   set deck-rotation ["Archers" "Arrows" "Giant" "GoblinBarrel" "HogRider" "Minions" "MiniPekka" "SkeletonArmy"]
   set top-deck-rotation ["Archers" "Arrows" "Giant" "GoblinBarrel" "HogRider" "Minions" "MiniPekka" "SkeletonArmy"]
   set top-deck-rotation shuffle top-deck-rotation
   set time-elapsed 0
-  resize-world 0 20 0 40
-  set-patch-size 18
   set elixir 4
   set top-elixir 4
+  set time-left "3:00"
+
+  ; setup world
+  resize-world 0 20 0 40
+  set-patch-size 18
   board
-  towers-make
+  towers-spawn
+
+  ; setup cards
   card-setup
   top-card-setup
-  set time-left "3:00"
 end
 
 to go
+  ; overall stuff
   clock
   elixir-update
-  towers-update
   crowns-update
 
+  ; ai send
   top-send-troop
 
+  ; card dragging
   get-card-pos
   card-drag
 
+  ; unit targeting
   target
+
+  ; move stuff
+  projectiles-move
   units-move
   spells-move
+
+  ; unit procedures
+  units-attack
+  units-die
+
+  ; tower procedures
+  towers-attack
+  towers-die
+end
+
+; HEHEHEHAW
+to emote
+  sound:play-sound "hehehehaw.wav"
+  create-hehehehaws 1
+  [
+    set shape "hehehehaw"
+    set size 8
+    setxy 10 10
+  ]
+end
+
+; NOOOOO
+to kill-hehehehaws
+  ask hehehehaws [die]
 end
 
 ;; CARDS
-
 to card-setup ;creates cards
   card-spawn 1
   card-spawn 2
@@ -269,6 +312,7 @@ to units-spawn [t s]
         set sight-range 5.5
         set shape (word t "-unit")
         set troop t
+        set atk-type "ranged"
         set side s
         set xcor xcor + 1
       ]
@@ -284,22 +328,27 @@ to units-spawn [t s]
         set sight-range 5.5
         set shape (word t "-unit")
         set troop t
+        set atk-type "ranged"
         set side s
         set xcor xcor - 1
       ]
     ]
     (t = "Arrows")
     [
-      hatch-units 1
+      ask towers with [side = s and pos = (word s "-king")]
       [
-        set size 8
-        set hp 1
-        set dmg 162
-        set speed 200
-        set atk-range 4
-        set shape (word t "-unit")
-        set troop t
-        set side s
+        hatch-spells 1
+        [
+          set size 8
+          set speed 1500
+          set troop t
+          set side s
+          ifelse
+          (s = "bottom")
+          [set landing-patch patch mouse-xcor mouse-ycor]
+          [set landing-patch one-of (patch-set patch 4 11 patch 16 11)]
+          set shape (word t "-unit")
+        ]
       ]
     ]
     (t = "Giant")
@@ -316,12 +365,13 @@ to units-spawn [t s]
         set sight-range 7.5
         set shape (word t "-unit")
         set troop t
+        set atk-type "melee"
         set side s
       ]
     ]
     (t = "GoblinBarrelGround")
     [
-      hatch-units 3
+      hatch-units 1
       [
         set size 2
         set hp 267
@@ -330,9 +380,44 @@ to units-spawn [t s]
         set atk-speed 1.1
         set fly? false
         set atk-range .5
+        set sight-range 5.5
         set shape (word t "-unit")
         set troop t
+        set atk-type "melee"
         set side s
+        set xcor xcor + 1
+      ]
+      hatch-units 1
+      [
+        set size 2
+        set hp 267
+        set dmg 159
+        set speed 120
+        set atk-speed 1.1
+        set fly? false
+        set atk-range .5
+        set sight-range 5.5
+        set shape (word t "-unit")
+        set troop troop
+        set atk-type "melee"
+        set side s
+        set xcor xcor - 1
+      ]
+      hatch-units 1
+      [
+        set size 2
+        set hp 267
+        set dmg 159
+        set speed 120
+        set atk-speed 1.1
+        set fly? false
+        set atk-range .5
+        set sight-range 5.5
+        set shape (word t "-unit")
+        set troop t
+        set atk-type "melee"
+        set side s
+        set ycor ycor - 1
       ]
     ]
     (t = "HogRider")
@@ -349,6 +434,7 @@ to units-spawn [t s]
         set sight-range 9.5
         set shape (word t "-unit")
         set troop troop
+        set atk-type "melee"
         set side s
       ]
     ]
@@ -366,6 +452,7 @@ to units-spawn [t s]
         set sight-range 5.5
         set shape (word t "-unit")
         set troop t
+        set atk-type "ranged"
         set side s
         set xcor xcor + 1
       ]
@@ -381,6 +468,7 @@ to units-spawn [t s]
         set sight-range 5.5
         set shape (word t "-unit")
         set troop t
+        set atk-type "ranged"
         set side s
         set xcor xcor - 1
       ]
@@ -396,6 +484,7 @@ to units-spawn [t s]
         set sight-range 5.5
         set shape (word t "-unit")
         set troop t
+        set atk-type "ranged"
         set side s
         set ycor ycor - 1
       ]
@@ -414,6 +503,7 @@ to units-spawn [t s]
         set sight-range 5
         set shape (word t "-unit")
         set troop troop
+        set atk-type "melee"
         set side s
       ]
     ]
@@ -433,6 +523,7 @@ to units-spawn [t s]
           set sight-range 5.5
           set shape (word t "-unit")
           set troop t
+          set atk-type "melee"
           set side s
           set heading 0
         ]
@@ -445,46 +536,192 @@ to units-spawn [t s]
           hatch-spells 1
           [
             set size 3
-            set speed 200
+            set speed 1000
             set troop t
             set side s
-            set landing-patch patch mouse-xcor mouse-ycor
+            ifelse
+            (s = "bottom")
+            [set landing-patch patch mouse-xcor mouse-ycor]
+            [set landing-patch one-of (patch-set patch 4 11 patch 16 11)]
             set shape (word t "-unit")
           ]
-        ]
+      ]
     ]
   )
-  ask units [set color gray]
+  ask units
+  [
+    set color gray
+    set dps round (dmg / atk-speed)
+  ]
 end
 
 to units-move
   ask units
   [
-    ifelse
-    (targeted-troop = 0 or targeted-troop = nobody)
-    [fd .000007 * speed]
-    [
+    (
       ifelse
-      (distance targeted-troop <= atk-range)
-      [units-attack]
-      [fd .000007 * speed]
-    ]
+      (targeted-troop = 0 or targeted-troop = nobody)
+      [fd speed-constant * speed]
+      [
+        ifelse
+        (distance targeted-troop <= atk-range)
+        []
+        [fd speed-constant * speed]
+      ]
+    )
   ]
 end
 
 to spells-move
   ask spells
   [
-    face landing-patch
-    fd .000007 * speed
+    ifelse
+    (distance landing-patch <= .2)
+    [spells-attack side]
+    [
+      face landing-patch
+      fd speed-constant * speed
+    ]
   ]
 end
 
-to units-attack
 
+;"Archers" "Arrows" "Giant" "GoblinBarrel" "HogRider" "Minions" "MiniPekka" "SkeletonArmy"
+
+to units-attack
+  every 1
+  [
+    ask units
+    [
+      let s side
+      let d dps
+      (
+        ifelse
+        (targeted-troop = 0 or targeted-troop = nobody)
+        []
+        (distance targeted-troop <= atk-range)
+        [
+          (
+            ifelse
+            (atk-type = "ranged")
+            [
+              projectiles-spawn targeted-troop troop d
+            ]
+            (atk-type = "melee")
+            [
+              ask targeted-troop
+              [
+                set hp hp - d
+              ]
+;              (
+;                ifelse
+;                ([breed] of targeted-troop = "towers" or [breed] of targeted-troop = "tower")
+;                [
+;                  ask min-one-of towers [distance self]
+;                  [
+;                    set hp hp - d
+;                  ]
+;                ]
+;                ([breed] of targeted-troop = "units" or [breed] of targeted-troop = "unit")
+;                [
+;                  ask min-one-of units with [distance self <= atk-range and side != s] [distance self]
+;                  [
+;                    set hp hp - d
+;                  ]
+;                ]
+;              )
+            ]
+          )
+        ]
+      )
+    ]
+  ]
 end
 
-to towers-update ;tower attacking and death
+to projectiles-spawn [ptarget ptype d]
+  hatch-projectiles 1
+  [
+    set targeted-troop ptarget
+    set dmg d
+    face targeted-troop
+    set shape (word ptype "-projectile")
+    set speed 1000
+  ]
+end
+
+to projectiles-move
+  ask projectiles
+  [
+    let d dmg
+    (
+      ifelse
+      (targeted-troop = nobody)
+      [die]
+      (distance targeted-troop <= .2)
+      [
+        ask targeted-troop
+        [
+          set hp hp - d
+        ]
+        die
+      ]
+      [
+        face targeted-troop
+        fd speed-constant * speed
+      ]
+    )
+  ]
+end
+
+to spells-attack [s]
+  ask spells
+  [
+    let me self
+    (
+      ifelse
+      (troop = "Arrows")
+      [
+        ask units with
+        [distance me <= 5 and side != s]
+        [
+          set hp hp - 162
+          set hp hp - 162
+          set hp hp - 162
+        ]
+        ask towers with
+        [distance me <= 5 and side != s]
+        [
+          set hp hp - 49
+          set hp hp - 49
+          set hp hp - 49
+        ]
+        die
+      ]
+      (troop = "GoblinBarrel")
+      [
+        units-spawn "GoblinBarrelGround" side
+        die
+      ]
+    )
+  ]
+end
+
+to units-die
+  ask units
+  [
+    if (hp <= 0)
+    [die]
+  ]
+end
+
+to towers-attack
+  ask towers
+  [
+
+  ]
+end
+
+to towers-die ;tower attacking and death
   ask towers
   [
     if (hp <= 0) [die]
@@ -516,7 +753,6 @@ to target
   ]
 
 
-
   ;target
   ask units
   [
@@ -525,8 +761,24 @@ to target
     [
       ifelse
       (side = "bottom")
-      [set targeted-troop min-one-of units with [side = "top"] [distance self]]
-      [set targeted-troop min-one-of units with [side = "bottom"] [distance self]]
+      [
+        set targeted-troop min-one-of
+        (
+          turtle-set
+          min-one-of units in-radius sight-range with [side = "top"] [distance self]
+          min-one-of towers in-radius sight-range with [side = "top"] [distance self]
+        )
+        [distance self]
+      ]
+      [
+        set targeted-troop min-one-of
+        (
+          turtle-set
+          min-one-of units in-radius sight-range with [side = "bottom"] [distance self]
+          min-one-of towers in-radius sight-range with [side = "bottom"] [distance self]
+        )
+        [distance self]
+      ]
     ]
     [face targeted-troop]
   ]
@@ -557,21 +809,26 @@ to board ;sets up the game field and UI
   [set pcolor 27]
 
   ;; pathing bottom-priority
-  ; start at y 12 until y 27
   ask patches with [(pxcor = 4 or pxcor = 16) and (pycor >= 13 and pycor <= 27)]
-    [
-      set bottom-priority [pycor] of self - 12
-    ]
+  [set bottom-priority [pycor] of self - 12]
   ask (patch-set patch 4 30 patch 16 30 patch 10 34) [set bottom-priority 17]
+  ask patches with [(pxcor = 2 or pxcor = 6 or pxcor = 14 or pxcor = 18) and (pycor >= 9 and pycor <= 12)]
+  [set bottom-priority .5]
+  ask (patch-set patch 6 34 patch 14 32)
+  [set bottom-priority 30]
+
   ;; pathing top-priority
   ask patches with [(pxcor = 4 or pxcor = 16) and (pycor >= 13 and pycor <= 27)]
-    [
-      set top-priority 28 - [pycor] of self
-    ]
-  ask (patch-set patch 4 11 patch 16 11 patch 16 11) [set top-priority 17]
+  [set top-priority 28 - [pycor] of self]
+  ask (patch-set patch 4 11 patch 16 11 patch 16 11)
+  [set top-priority 17]
+  ask patches with [(pxcor = 2 or pxcor = 6 or pxcor = 14 or pxcor = 18) and (pycor >= 28 and pycor <= 31)]
+  [set top-priority .5]
+  ask (patch-set patch 6 8 patch 14 8)
+  [set top-priority 30]
 end
 
-to towers-make ;spawns in towers
+to towers-spawn ;spawns in towers
                ;; at (4,10) (16,10) (10,6) (4,30) (16,30) (10,34)
   create-towers 1 [set pos "bottom-left" set side "bottom" set shape "tower"]
   create-towers 1 [set pos "bottom-right" set side "bottom" set shape "tower"]
@@ -906,6 +1163,40 @@ top-elixir
 1
 11
 
+BUTTON
+65
+255
+131
+288
+NIL
+emote
+NIL
+1
+T
+OBSERVER
+NIL
+J
+NIL
+NIL
+1
+
+BUTTON
+982
+652
+1101
+685
+NIL
+kill-hehehehaws
+NIL
+1
+T
+OBSERVER
+NIL
+K
+NIL
+NIL
+1
+
 @#$#@#$#@
 ## WHAT IS IT?
 
@@ -978,6 +1269,13 @@ Circle -5825686 true false 75 15 0
 Circle -5825686 true false 30 270 60
 Circle -5825686 true false 120 270 60
 Circle -5825686 true false 210 270 60
+
+archers-projectile
+true
+0
+Polygon -2674135 true false 165 210 135 210 135 255 150 240 165 255 165 225
+Rectangle -6459832 true false 142 105 157 210
+Polygon -1 true false 150 114 126 115 151 82 173 116
 
 archers-unit
 true
@@ -1254,6 +1552,26 @@ Polygon -10899396 true false 103 194 69 181 72 136 51 135 55 195 100 211
 Polygon -14835848 true false 168 83 208 66 231 77 212 86 188 85 164 98
 Polygon -14835848 true false 109 82 69 65 46 76 65 85 89 84 113 97
 
+hehehehaw
+false
+0
+Polygon -955883 true false 80 66 185 51 237 149 156 243 23 176
+Polygon -16777216 true false 149 109 185 94 206 112 179 106
+Polygon -16777216 true false 128 114 92 99 71 117 98 111
+Polygon -8630108 true false 72 153 201 142 146 214
+Polygon -1 true false 91 153 138 170 180 145
+Polygon -1 true false 102 183 143 188 174 173 144 211
+Line -16777216 false 118 164 116 151
+Line -16777216 false 140 167 137 149
+Line -16777216 false 157 158 154 148
+Line -16777216 false 122 184 122 198
+Line -16777216 false 135 185 138 211
+Line -16777216 false 154 183 160 192
+Polygon -16777216 true false 63 155 141 219 202 145 234 150 152 256 20 185 22 147
+Polygon -16777216 true false 35 122 73 134 198 125 234 118 219 145 57 151
+Polygon -5825686 true false 137 103 135 124 122 137 153 134 143 121 145 103
+Polygon -1184463 true false 125 51 93 50 87 25 101 15 111 37 126 38 131 5 151 7 150 35 166 36 189 22 202 32 169 52
+
 hogrider
 false
 0
@@ -1357,6 +1675,12 @@ Polygon -16777216 true false 118 114 144 98 165 117 142 110
 Circle -5825686 true false 30 270 60
 Circle -5825686 true false 210 270 60
 Circle -5825686 true false 120 270 60
+
+minions-projectile
+true
+0
+Circle -7500403 true true 135 135 30
+Circle -16777216 true false 137 137 26
 
 minions-unit
 true
