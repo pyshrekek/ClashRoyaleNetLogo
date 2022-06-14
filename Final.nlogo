@@ -264,7 +264,7 @@ to drag
     ifelse
     (current-pos = "deck") [set shape troop set color gray set size 4 set heading 0 reset-perspective ]
     (current-pos = "invalid" or elixir < cost) [set shape "x" set color red set size 2 set heading 0 reset-perspective]
-    (current-pos = "on-map" and elixir >= cost) [set shape "bug" set color gray set size 4 set heading 0 ask patch-here [watch-me]]
+    (current-pos = "on-map" and elixir >= cost) [set shape (word troop "-unit") set color gray set size 4 set heading 0 ask patch-here [watch-me]]
   )
   setxy mouse-xcor mouse-ycor
 end
@@ -493,7 +493,7 @@ to units-spawn [t s]
     [
       hatch-units 1
       [
-        set size 3
+        set size 2.5
         set hp 1804
         set dmg 955
         set speed 90
@@ -1201,23 +1201,6 @@ T
 OBSERVER
 NIL
 J
-NIL
-NIL
-1
-
-BUTTON
-649
-428
-812
-462
-NIL
-set time-elapsed 178\n
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
 NIL
 NIL
 1
