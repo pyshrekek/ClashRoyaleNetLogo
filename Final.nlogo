@@ -1035,17 +1035,6 @@ NIL
 1
 
 MONITOR
-689
-10
-783
-55
-NIL
-time-elapsed
-17
-1
-11
-
-MONITOR
 603
 11
 669
@@ -1145,17 +1134,6 @@ bottom-crowns
 11
 
 MONITOR
-172
-763
-714
-808
-NIL
-top-deck-rotation
-17
-1
-11
-
-MONITOR
 107
 610
 185
@@ -1177,17 +1155,6 @@ god-mode
 1
 -1000
 
-MONITOR
-637
-300
-706
-345
-NIL
-top-elixir
-17
-1
-11
-
 BUTTON
 65
 255
@@ -1207,40 +1174,186 @@ NIL
 
 @#$#@#$#@
 ## WHAT IS IT?
-
-(a general understanding of what the model is trying to show or explain)
+This NetLogo model is a recreation of the critically acclaimed game, Clash Royale, which has reached worldwide success. In this model we hoped to recreate the idea of taking cards from a deck and using them to place troops on the battlefield, defending against enemy troops and advancing forward in order to destroy enemy structures.
 
 ## HOW IT WORKS
+Throughout this model we divert our attention to a few vital game mechanics, elixir, card placement and rotation, troop spawning, pathing, and attacking, and game progression. I will now begin to outline what each procedure does.
 
-(what rules the agents use to create the overall behavior of the model)
+to setup - This procedure returns the board to its base state and all variables that fluctuate throughout the match (elixir, deck rotation, tower hp, time left) back to its starting value.  
+Authors:  Daniel   
+Agentsets: Patches, Observer
+
+to go - This procedure continuously calls the main procedures we used to recreate the mechanics outlined before. 
+Authors: Daniel, Khin   
+Agentsets: Observer, Turtles
+
+to emote - This is a miscellaneous function we coded in for fun. Emotes in the actual game are used to express emotion in an otherwise silent exchange between two players.
+This iconic emote is used to taunt your opponent by laughing. 
+Authors: Daniel
+Agentsets: Observer
+
+to card-setup - This procedure places the cards into the deck located on the bottom row of the screen. 
+Authors: Daniel
+Agentsets: Turtles
+
+to top-card-spawn [p] - This procedure spawns and gives the first four cards of the enemy deck a position [p] and elixir cost corresponding to the unit of the card. 
+Authors: Daniel
+Agentsets: Turtles
+
+to top-card-setup - This procedure runs through top-card-spawn for all available positions [1] [2] [3] [4]. 
+Authors: Daniel
+Agentsets: Turtles
+
+to top-send-troop - This procedure sends an enemy troop given that the drawn card's elixir cost does not exceed how much elixir the enemy currently has.
+Authors: Daniel
+Agentsets: Turtles
+
+to card-spawn [p] - This procedure behaves in a very similar way to top-card-spawn, except this time it creates a visible turtle in the shape of a card with the corresponding unit. These cards are spawned at the bottom of your screen within one of the 4 positions [p] within the row, representing your deck.
+Authors: Khin Daniel
+Agentsets: Turtles
+
+to card-drag - This procedure allows for player interaction with the spawned cards. While the card is in the “waiting” state and no other cards are in the “dragging” state the card will move into the “dragging” state upon mouse-down?. While in the dragging state and your mouse is still held down the card will initiate the drag procedure. If the mouse has been released while the card is in the dragging state the release-valid procedure will initiate if the card is in a valid position, while release-invalid will initiate if the card is in an invalid position.
+Authors: Khin Daniel
+Agentsets: Turtles
+
+to release-valid - This procedure is triggered upon a valid release of a card from the deck. It will spawn the corresponding unit for the card, subtract its respective elixir cost, and insert the card into the last position of the deck, setting the troop of the next card as top card in deck.
+Authors: Khin Daniel
+Agentsets: Turtles
+
+to release-invalid - This procedure is triggered upon an invalid release of a card from the deck. The card will return back to its original position in the deck.
+Authors: Daniel
+Agentsets: Turtles
+
+to drag - This procedure occurs while the card is in the “dragging” state. The card will set its coordinates to the mouse-xcor and mouse-ycor, effectively following it. If the card is still within the deck then it will show the card, if it is in an invalid position on the map or the elixir cost has not been met it will show an “x” symbol, if it is in a valid position on the map and that elixir cost has been met then it will show the unit that will be spawned and be watched (highlighted).
+Authors: Khin
+Agentsets: Turtles
+
+to select - This procedure simply sets the card’s drag-state to “dragging” in order to initiate the drag procedure.
+Authors: Khin
+Agentsets: Turtles
+
+to get-card-pos - This procedure assigns the current-pos variable of the card with the card’s general position on the map. If it is on the deck then it will be set to “deck”, if it is on the bottom side of the map then it will be set to “on-map”, if it is on the top side of the map, the bridge, or water then it will be set to “invalid”.
+Authors: Daniel
+Agentsets: Turtles
+
+to units-spawn [t s]  - This procedure will hatch (spawn) a unit corresponding to the [t] value given and assign it a side [s]. For each unit there are different values that affect its behavior: size, hp, speed, atk-speed, fly?, atk-range, sight-range, atk-type. These different variables allow for the variety in troops that contribute to the strategy required in this game.
+Authors: Daniel
+Agentsets: Turtles
+
+to units-move - This procedure asks units to keep moving forward relative to their respective speed, they will move towards enemies instead if the enemies are within their attack range.
+Authors: Daniel Khin
+Agentsets: Turtles
+
+to spells-move - This procedure asks spells to move towards their landing-patch then initiate the spell-attack procedure to deal damage.
+Authors: Daniel Khin
+Agentsets: Turtles
+
+to units-attack - This procedure asks units to attack the targeted-troop as long as it is within the atk-range of the unit. If the unit is a ranged troop then it will spawn projectiles at its enemy using the projectile-spawn function. If the unit is a melee troop then it will subtract the hp of its enemy based on the dps assigned to the unit.
+Authors: Daniel Khin
+Agentsets: Turtles
+
+to projectiles-spawn [ ptarget ptype d ] - This procedure hatches projectiles and sets their targeted-troop [ptarget], their damage [d], and projectile type for the corresponding unit [ptype]. The projectile will face the targeted troop and have a speed of 1000.
+Authors: Daniel Khin
+Agentsets: Turtles
+
+to projectiles-move - This procedure asks projectiles to face and move towards their targeted troop at the assigned speed, subtracted the projectile’s damage from the troop’s hp, then die (disappear).
+Authors: Khin
+Agentsets: Turtles
+
+
+to spells-attack - This procedure allows spells to deal damage. If the spell is “Arrows” then it will ask troops within 5 patches and of the opposite side (team) to subtract 162 hp, it will also ask towers within 5 patches and of the opposite side to subtract 49 hp. After doing so the spell will die. If the spell is “GoblinBarrel” it will trigger unit spawn to spawn goblin units that will aid you in battle (same team / side as you).
+Authors: Daniel
+Agentsets: Turtles
+
+to units-die - This procedure asks units with hp at or below zero to die.
+Authors: Daniel
+Agentsets: Turtles
+
+to towers-attack - This procedure asks king towers to send projectiles toward targeted enemies every second, and asks the side towers to send projectiles toward targeted enemies every 0.8 second.
+Authors: Daniel Khin
+Agentsets: Turtles
+
+to towers-die - This procedure asks towers with hp at or below zero to die.
+Authors: Daniel
+Agentsets: Turtles
+
+to target - This procedure handles the path towers will take, whether that be towards enemy towers or units. Targeting of towers takes precedence over targeting of enemies, but it all depends on what the unit sees first. For targeting of enemies, melee units will target a random unit (min-one-of) within its sight range, on the opposite side (team), and not flying. Flying melee and ranged units will do the same, except they are able to target flying units. All unit types will target the closest tower within its sight range that's on the opposite side. 
+Authors: Khin
+Agentsets: Turtles
+
+to towers-target - This procedure handles what enemies the tower will target, the tower functions similarly to the regular target procedure, in that it will target a random unit within range of the tower and on the opposite side / team.
+Authors: Khin
+Agentsets: Turtles
+
+to board - This procedure creates the appearance of the playing field and assigns patches on the top and bottom half the board a priority. Elaborate on priority
+Authors: Daniel
+Agentsets: Turtles
+
+to towers-spawn - This procedure spawns the towers, assigning them their corresponding side and position, as well as giving them a sight-range, hp, and damage.
+Authors: Daniel
+Agentsets: Turtles
+
+to clock - This procedure keeps track of the time left in the match, which outputs in a “min : seconds” format.
+Authors: Daniel
+Agentsets: Turtles
+
+to elixir-update - This procedure updates the elixir count for the player. As long as the elixir is not already at max (10) and god-mode (infinite elixir) is not turned on, then the player will gain one elixir every 2.8 seconds. Once the time goes past 2 minutes the elixir rate will double and the player will gain one elixir every 1.4 seconds. The same thing applies to the enemy’s elixir, with the exception that the enemy does not have a god-mode (this would break the game!). The procedure also draws purple squares at the bottom of the screen, with each square representing one elixir.
+Authors: Daniel
+Agentsets: Turtles
+
+to crowns-update - This procedure keeps track of how many crowns are left on both sides, based on how many towers still exist for that side.
+Authors: Daniel
+Agentsets: Turtles
+
+to winloss - This procedure stops the game and sends a pop-up message once the time elapsed in the match has exceeded 3 minutes. The pop-up message corresponds with whether or not the user has lost, won, or reached a draw. Ex: Loss -> "You won with " bottom-crowns " crowns, while the enemy had only " top-crowns " crowns!".
+Authors: Daniel
+Agentsets: Turtles
+
+to labelhp - This procedure displays the hp of the towers on the world itself (alleviating the need to look at a monitor), by setting the label of the towers as their hp variable.
+Authors: Daniel Khin
+Agentsets: Turtles
+
+to report even? [n] - This procedure returns whether or not the input number is even.
+Authors: Khin
+Agentsets: Turtles
+
+to report odd? [n] - This procedure returns whether or not the input number is odd.
+Authors: Khin
+Agentsets: Turtles
+
+
 
 ## HOW TO USE IT
 
-(how to use the model, including a description of each of the items in the Interface tab)
+Press the setup button to set up the game board.
+The go button will start the game, allowing you to drag cards and play the game.
+The various monitors around the screen display information about the game, such as your next card, elixir, crowns, and time left.
+Press the emote button, or J on your keyboard to emote and humiliate the enemy.
+Turning on the god-mode switch gives you infinite elixir to play with.
 
 ## THINGS TO NOTICE
 
-(suggested things for the user to notice while running the model)
+The elixir bar in the bottom of the screen is dynamic and updates with the current elixir count for you. Notice how the troops path towards the bridge first, and then towards the enemy tower.
 
 ## THINGS TO TRY
 
-(suggested things for the user to try to do (move sliders, switches, etc.) with the model)
+If you can’t win, try turning on the god-mode switch to give you unlimited elixir, which makes the game much easier.
 
 ## EXTENDING THE MODEL
 
-(suggested things to add or change in the Code tab to make the model more complicated, detailed, accurate, etc.)
+Try to add a proper win loss screen (not a popup message) with a visual display of how many crowns were obtained by each side, and showing who won!
 
 ## NETLOGO FEATURES
 
-(interesting or unusual features of NetLogo that the model uses, particularly in the Code tab; or where workarounds were needed for missing features)
+In the absence of a proper Finite State Machine in NetLogo, we leveraged the power of a global variable and a per-tick check to see which state cards were in. Although we only used 2 main states, it is easily expandable and flexible.
 
 ## RELATED MODELS
 
-(models in the NetLogo Models Library and elsewhere which are of related interest)
+The Slime Mold model we completed in class was the inspiration for the pathing system, using a “pheromone”-like, invisible substance on the board to lure the units in a certain direction.
 
 ## CREDITS AND REFERENCES
 
-(a reference to the model's URL on the web if it has one, as well as any other necessary credits, citations, and links)
+The model can be found at https://github.com/pyshrekek/ClashRoyaleNetLogo, along with a README containing more information about the model and units.
 @#$#@#$#@
 default
 true
