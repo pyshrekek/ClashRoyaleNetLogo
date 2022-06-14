@@ -1354,6 +1354,8 @@ The Slime Mold model we completed in class was the inspiration for the pathing s
 ## CREDITS AND REFERENCES
 
 The model can be found at https://github.com/pyshrekek/ClashRoyaleNetLogo, along with a README containing more information about the model and units.
+
+By Khin Aung and Haokun (Daniel) Xu, Period 7
 @#$#@#$#@
 default
 true
