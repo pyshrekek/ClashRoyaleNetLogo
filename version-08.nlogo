@@ -52,6 +52,7 @@ end
 
 to go
   ; overall stuff
+  labelhp
   clock
   winloss
   elixir-update
@@ -928,16 +929,28 @@ to crowns-update ;updates and counts crowns for both players
 end
 
 to winloss
-  if time-elapsed >= 180
+  if (time-elapsed >= 180)
   [
-    if (top-crowns = bottom-crowns)
-    [ask patches [set pcolor gray]]
+    if (bottom-crowns = top-crowns)
+    [
+      user-message "It was a draw!"
+    ]
+    if (bottom-crowns > top-crowns)
+    [
+      user-message (word "You won with " bottom-crowns " crowns, while the enemy had only " top-crowns " crowns!")
+    ]
     if (top-crowns > bottom-crowns)
-    [ask patches [set pcolor blue]]
-    if (top-crowns < bottom-crowns)
-    [ask patches [set pcolor red]]
-    stop
+    [
+      user-message (word "You lost since you only had " bottom-crowns " crowns, while the enemy had " top-crowns " crowns!")
+    ]
   ]
+end
+
+to labelhp
+  ask towers [set label hp]
+  ask units [set label ""]
+  ask projectiles [set label ""]
+  ask spells [set label ""]
 end
 
 ;; AUXILIARY FUNCTIONS
@@ -1132,50 +1145,6 @@ bottom-crowns
 11
 
 MONITOR
-611
-282
-828
-327
-NIL
-[troop] of top-cards with [pos = 1]
-17
-1
-11
-
-MONITOR
-616
-341
-827
-386
-NIL
-[troop] of top-cards with [pos = 2]
-17
-1
-11
-
-MONITOR
-620
-394
-831
-439
-NIL
-[troop] of top-cards with [pos = 3]
-17
-1
-11
-
-MONITOR
-621
-457
-832
-502
-NIL
-[troop] of top-cards with [pos = 4]
-17
-1
-11
-
-MONITOR
 172
 763
 714
@@ -1209,10 +1178,10 @@ god-mode
 -1000
 
 MONITOR
-829
-161
-891
-206
+637
+300
+706
+345
 NIL
 top-elixir
 17
@@ -1232,6 +1201,23 @@ T
 OBSERVER
 NIL
 J
+NIL
+NIL
+1
+
+BUTTON
+649
+428
+812
+462
+NIL
+set time-elapsed 178\n
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
 NIL
 NIL
 1
@@ -1432,6 +1418,13 @@ false
 Polygon -7500403 true true 200 193 197 249 179 249 177 196 166 187 140 189 93 191 78 179 72 211 49 209 48 181 37 149 25 120 25 89 45 72 103 84 179 75 198 76 252 64 272 81 293 103 285 121 255 121 242 118 224 167
 Polygon -7500403 true true 73 210 86 251 62 249 48 208
 Polygon -7500403 true true 25 114 16 195 9 204 23 213 25 200 39 123
+
+crown
+true
+0
+Polygon -1184463 true false 75 120 90 180 210 180 225 120 195 150 150 105 105 150
+Rectangle -7500403 true true 90 180 210 195
+Circle -2674135 true false 135 135 30
 
 cylinder
 false
