@@ -928,14 +928,15 @@ to crowns-update ;updates and counts crowns for both players
 end
 
 to winloss
-  if time-left <= 0
+  if time-elapsed >= 180
   [
     if (top-crowns = bottom-crowns)
-    [ca ask patches [set pcolor gray]]
+    [ask patches [set pcolor gray]]
     if (top-crowns > bottom-crowns)
-    [ca ask patches [set pcolor blue]]
+    [ask patches [set pcolor blue]]
     if (top-crowns < bottom-crowns)
-    [ca ask patches [set pcolor red]]
+    [ask patches [set pcolor red]]
+    stop
   ]
 end
 
