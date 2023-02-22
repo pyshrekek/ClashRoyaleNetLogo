@@ -1,5 +1,5 @@
 # ClashRoyaleNetLogo
-Final Assingment for Intro to Computer Science Spring 2022
+Final Assignment for Intro to Computer Science Spring 2022, Mr. Platek
 
 By Khin Aung and Haokun (Daniel) Xu
 
